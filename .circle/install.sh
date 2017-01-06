@@ -14,6 +14,9 @@ sudo apt-get --yes install libpq-dev
 sudo apt-get --yes install libpq-dev postgresql-server-dev-all
 sudo apt-get --yes install lcov
 sudo apt-get --yes install libyaml-dev
+sudo apt-get install build-essential g++ flex bison gperf ruby perl \
+  libsqlite3-dev libfontconfig1-dev libicu-dev libfreetype6 libssl-dev \
+  libpng-dev libjpeg-dev python libx11-dev libxext-dev -y
 
 export CPP=$(which cpp)
 export CC=$(which cc)
