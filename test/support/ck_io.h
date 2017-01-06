@@ -34,26 +34,21 @@ void _ck_make_dummy_sql(const char *name, const char *sql, long long int timesta
 
 #define ck_make_dummy_sql(name, sql, timestamp) _ck_make_dummy_sql(name, sql, timestamp);
 
-#define ck_path_contains(path, content) \
-  (_ck_io_contains(path, content) == 1) ? \
-     _mark_point(__FILE__, __LINE__) : \
-     _ck_assert_failed(__FILE__, __LINE__, "Assertion "#path" contains "#content" failed" , NULL)
+#define ck_path_contains(path, content) do { \
+     ck_assert_msg(_ck_io_contains(path, content) == 1, ""#path" contains "#content" failed"); \
+} while (0);
 
 
-#define ck_path_exists(path) \
-  (_ck_io_check(path) == CK_FS_OK) ? \
-     _mark_point(__FILE__, __LINE__) : \
-     _ck_assert_failed(__FILE__, __LINE__, "Assertion io path "#path" exists failed" , NULL)
+#define ck_path_exists(path) do { \
+     ck_assert_msg(_ck_io_check(path) == CK_FS_OK, "io path "#path" exists failed"); \
+} while (0);
 
-#define ck_assert_file_in(dir, name) \
-  { \
+#define ck_assert_file_in(dir, name) do { \
     char *path = _ck_findFile(dir, name); \
     char exists = 0; \
     if (path != NULL) { exists = 1; free(path); } \
-    exists ? \
-       _mark_point(__FILE__, __LINE__) : \
-       _ck_assert_failed(__FILE__, __LINE__, "Assertion file "#name" in "#dir" exists failed" , NULL); \
-  }
+     ck_assert_msg(exists, "file "#name" in "#dir" exists failed"); \
+  } while (0);
 
 #define ck_redirectStdout(code) \
   ck_catchStdout("./log/info.log"); \
