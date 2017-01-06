@@ -1,0 +1,26 @@
+.TH man 8 "04 Jan 2017" "1.0" "koro-migrator"
+.SH NAME
+koro-migrator \- execute sql
+
+.SH SYNOPSIS
+koro-migrator
+
+.SH DESCRIPTION
+Create database, drop database and execute migrations files.
+
+.SH OPTIONS
+create drop migrate
+.SH EXAMPLES
+koro-migrator create
+
+koro-migrator drop
+
+koro-migrator migrate
+
+.SH SEE ALSO
+koro
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Adrian Wozniak (adrian.wozniak@ita-prog.pl)
+

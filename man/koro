@@ -1,0 +1,38 @@
+.TH man 8 "04 Jan 2017" "1.0" "koro"
+.SH NAME
+koro \- manage kore application
+
+.SH SYNOPSIS
+koro
+
+.SH DESCRIPTION
+koro creates migrations and database connection initializer.
+
+.SH OPTIONS
+info help db
+.SH EXAMPLES
+koro info
+
+koro help
+
+koro --help
+
+koro -h
+
+koro db init
+
+koro db new table accounts id login:varchar
+
+koro db change accounts add login
+
+koro db change accounts drop login
+
+koro migrate
+
+.SH SEE ALSO
+koro-migrator
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Adrian Wozniak (adrian.wozniak@ita-prog.pl)
+
