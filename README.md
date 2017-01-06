@@ -94,3 +94,25 @@ Couple functionalities are missing right now, calling:
 - [ ] Using setup `koro db setup` for setup database before `db migrate`
 - [ ] Before migration code execution
 - [ ] After migration code execution
+
+## Pre-requirements
+
+Ubuntu
+
+```bash
+sudo apt-get --yes install check
+sudo apt-get --yes install clang-3.8
+sudo apt-get --yes install libpq-dev postgresql-server-dev-all
+sudo apt-get --yes install lcov
+sudo apt-get --yes install libyaml-dev
+sudo apt-get --yes install build-essential libunistring-dev
+```
+
+Mac OS
+
+```bash
+brew install libunistring
+brew install postgresql
+brew install libyaml
+brew install lcov
+```
