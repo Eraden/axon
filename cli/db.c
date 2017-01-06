@@ -32,12 +32,12 @@ static char koro_dbInit() {
       ""
           "Please modify your conf/project.conf\n"
           "  load    ./project.so db_init\n"
-          "Files created:\n"
-          "src\n"
-          "  └── db\n"
-          "      ├── init.c\n"
-          "      └── init.h\n"
   );
+
+  KoroGraph dbChildren[2] = {{.root="init.c",.len=0}, {.root="init.h",.len=0}};
+  KoroGraph srcChildren[1] = {{.root="db", .leafs=dbChildren,.len=2}};
+  KoroGraph koroGraph = {.root="src", .len=1, .leafs=srcChildren};
+  koro_createInfo(&koroGraph);
 
   return 1;
 }
@@ -49,7 +49,7 @@ static char koro_dbNew(int argc, char **argv) {
   if (strcmp(type, "table") == 0) {
     return koro_dbNewTable(argc, argv);
   } else {
-    return 0;
+    return KORO_FAILURE;
   }
 }
 
@@ -65,10 +65,6 @@ char koro_dbExec(int argc, char **argv) {
     fprintf(stderr, "DB init does not exists! Type `koro db init` to create it\n");
     return 0;
   } else if (strcmp(op, "init") == 0) {
-    if (argc < 4) {
-      fprintf(stderr, "Missing database name\n");
-      return KORO_DB_NOT_EXISTS;
-    }
     return koro_dbInit();
   } else if (strcmp(op, "new") == 0) {
     return koro_dbNew(argc, argv);

@@ -75,7 +75,7 @@ ADD_LIBRARY(koroutils shared/utils.c)
 
 if (CMAKE_C_COMPILER MATCHES "gcc")
   INCLUDE(CodeCoverage)
-  SETUP_TARGET_FOR_COVERAGE(koro_coverage koro coverage)
+  SETUP_TARGET_FOR_COVERAGE(koro_coverage koro_test coverage)
 endif ()
 
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

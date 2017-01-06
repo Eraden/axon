@@ -16,6 +16,9 @@ typedef struct sKoroConfig {
   size_t len;
 } KoroConfig;
 
+#define NO_DB_CONFIG_MSG fprintf(stderr, "No database config found!\n");
+#define NO_DB_CONFIG_FOR_ENV_MSG fprintf(stderr, "No database config file for current env!\n");
+
 void koro_createConfig();
 
 char koro_configExists();

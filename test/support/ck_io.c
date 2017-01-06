@@ -6,9 +6,18 @@ static fpos_t stderrPos;
 static int stdoutFD;
 static fpos_t stdoutPos;
 
-void ck_drop_testDb() {
-  KoroExecContext context = koro_getContext("DROP DATABASE kore", "dbname = postgres", KORO_ONLY_QUERY);
-  koro_psqlExecute(&context);
+void ck_dropTestDb() {
+  ck_redirectStderr(
+      KoroExecContext context = koro_getContext("DROP DATABASE kore_test", "dbname = postgres", KORO_ONLY_QUERY);
+      koro_psqlExecute(&context);
+  );
+}
+
+void ck_createTestDb() {
+  ck_redirectStderr(
+      KoroExecContext context = koro_getContext("CREATE DATABASE kore_test", "dbname = postgres", KORO_ONLY_QUERY);
+      koro_psqlExecute(&context);
+  );
 }
 
 void ck_catchStderr(const char *newStream) {
@@ -182,6 +191,7 @@ int _ck_io_contains(const char *path, const char *content) {
 }
 
 void _ck_make_dummy_sql(const char *name, const char *sql, long long int timestamp) {
+  ck_catchStdout("./log/info.log");
   FILE *f = NULL;
   char path[1024];
   memset(path, 0, 1024);
@@ -190,4 +200,5 @@ void _ck_make_dummy_sql(const char *name, const char *sql, long long int timesta
   fprintf(f, "%s", sql);
   fflush(f);
   fclose(f);
+  ck_releaseStdout();
 }

@@ -2,6 +2,8 @@
 #include "koro/db/create.h"
 
 int main(int argc, char **argv) {
+  setlocale(LC_ALL, "");
+
   if (argc < 2) return KORO_FAILURE;
   if (koro_isMigrate(argv[1])) {
     return koro_migrate();

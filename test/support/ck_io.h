@@ -8,7 +8,9 @@
 
 #define NOW() ((unsigned long long) time(NULL))
 
-void ck_drop_testDb();
+void ck_dropTestDb();
+
+void ck_createTestDb();
 
 void ck_catchStderr(const char *newStream);
 
@@ -52,5 +54,15 @@ void _ck_make_dummy_sql(const char *name, const char *sql, long long int timesta
        _mark_point(__FILE__, __LINE__) : \
        _ck_assert_failed(__FILE__, __LINE__, "Assertion file "#name" in "#dir" exists failed" , NULL); \
   }
+
+#define ck_redirectStdout(code) \
+  ck_catchStdout("./log/info.log"); \
+  code; \
+  ck_releaseStdout();
+
+#define ck_redirectStderr(code) \
+  ck_catchStderr("./log/error.log"); \
+  code; \
+  ck_releaseStderr();
 
 #define ck_unlink(path) _ck_unlink(path)

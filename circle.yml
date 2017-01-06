@@ -1,0 +1,16 @@
+general:
+  branches:
+    ignore:
+      - /experimental\/.*/
+dependencies:
+  cache_directories:
+    - tmp
+    - vendor
+  override:
+    - bash ./.circle/install.sh
+test:
+  override:
+    - bash ./.circle/memory_check.sh
+    - bash ./.circle/coverage_check.sh
+  post:
+    - bash <(curl -s https://codecov.io/bash)

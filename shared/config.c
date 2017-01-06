@@ -1,22 +1,25 @@
-#include <yaml.h>
 #include "koro/config.h"
 
 void koro_createConfig() {
   koro_ensureStructure();
-  FILE *config = fopen("./conf/koro.yml", "w+");
+  FILE *config = fopen("./conf/database.yml", "w+");
   if (config == NULL) {
     fprintf(stderr, "Error: %s\n", strerror(errno));
-    exit(EXIT_FAILURE);
+    return;
   }
   fprintf(
       config,
       ""
           "dev:\n"
-          "  name: \"kore\"\n"
+          "  name: \"kore_dev\"\n"
           "  port: 5432\n"
           "  host: \"localhost\"\n"
           "prod:\n"
-          "  name: \"kore\"\n"
+          "  name: \"kore_prod\"\n"
+          "  port: 5432\n"
+          "  host: \"localhost\"\n"
+          "test:\n"
+          "  name: \"kore_test\"\n"
           "  port: 5432\n"
           "  host: \"localhost\"\n"
   );
@@ -24,7 +27,7 @@ void koro_createConfig() {
 }
 
 char koro_configExists() {
-  return koro_checkIO("./conf/koro.yml");
+  return koro_checkIO("./conf/database.yml");
 }
 
 static void koro_fetchConfig(KoroEnvironmentConfig *c, char *name, char *value) {
@@ -51,7 +54,7 @@ static void koro_fetchConfig(KoroEnvironmentConfig *c, char *name, char *value) 
 }
 
 static void koro_readFile(KoroConfig *config) {
-  FILE *f = fopen("./conf/koro.yml", "rb");
+  FILE *f = fopen("./conf/database.yml", "rb");
   if (f == NULL) return;
   yaml_parser_t parser;
   yaml_parser_initialize(&parser);
@@ -185,9 +188,15 @@ void koro_freeConfig(KoroConfig *config) {
 }
 
 char *koro_getFlavor(void) {
+  char *flavor = NULL;
+  if (getenv("KORE_ENV")) {
+    const char *env = getenv("KORE_ENV");
+    flavor = calloc(sizeof(char), strlen(env) + 1);
+    strcpy(flavor, env);
+    return flavor;
+  }
   // This is kore .flavor file
   FILE *f = fopen(".flavor", "r");
-  char *flavor = NULL;
   if (f == NULL) {
     flavor = calloc(sizeof(char), strlen("dev") + 1);
     strcpy(flavor, "dev");
@@ -215,5 +224,3 @@ char *koro_getFlavor(void) {
   fclose(f);
   return flavor;
 }
-
-

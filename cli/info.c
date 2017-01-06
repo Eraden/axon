@@ -1,20 +1,19 @@
 #include "koro/info.h"
 
 char koro_isInfo(const char *str) {
-  return strcmp(str, "info") == 0 ||
-         strcmp(str, "--info") == 0 ||
-         strcmp(str, "-i") == 0 ||
-         strcmp(str, "help") == 0 ||
-         strcmp(str, "--help") == 0 ||
-         strcmp(str, "-h") == 0;
+  if (strcmp(str, "info") == 0) return 1;
+  if (strcmp(str, "--info") == 0) return 1;
+  if (strcmp(str, "-i") == 0) return 1;
+  if (strcmp(str, "help") == 0) return 1;
+  if (strcmp(str, "--help") == 0) return 1;
+  if (strcmp(str, "-h") == 0) return 1;
+  return 0;
 }
 
 void koro_info() {
   printf(
       "koro %i.%i.%i\n"
           "  db - execute database operations\n"
-          "  assets - execute assets operations\n"
-          "init:\n"
           "db:\n"
           "  kore db init\n"
           "  kore db new table TABLE_NAME COLUMN COLUMN:TYPE\n"

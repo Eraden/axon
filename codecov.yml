@@ -1,0 +1,38 @@
+codecov:
+  branch: master
+#  bot: null
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: null
+        branches:
+          - master
+
+    patch:
+      default:
+        target: auto
+        branches:
+          - master
+
+    changes:
+      default:
+        branches:
+          - master
+
+  ignore:
+    - test
+    - vendor
+    - mock
+
+comment:
+  layout: "header, diff, changes, sunburst, uncovered, tree"
+  branches:
+    - master
+  behavior: default
+  

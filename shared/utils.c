@@ -1,5 +1,10 @@
 #include "koro/utils.h"
 
+static const u_int32_t KORO_LAST_LEAF = L'└';
+static const u_int32_t KORO_INTERSECTION_LEAF = L'├';
+static const u_int32_t KORO_PATH_TO_LEAF = L'─';
+static const size_t KORO_PATH_LEN = 3;
+
 char koro_checkIO(const char *path) {
   FILE *f = fopen(path, "r");
   if (f == NULL) return 0;
@@ -35,4 +40,25 @@ int koro_runCommand(const char *command) {
   int result = pclose(cmd);
   result = __WEXITSTATUS(result);
   return result;
+}
+
+void koro_createInfo(KoroGraph *koroGraph) {
+  fprintf(stdout, "Files created:\n");
+  koro_drawGraph(koroGraph, 0);
+}
+
+void koro_drawGraph(KoroGraph *koroGraph, size_t indent) {
+  fprintf(stdout, "%s\n", koroGraph->root);
+  const size_t len = koroGraph->len;
+  for (int i = 0; i < len; i++) {
+    char isIntersection = i < len - 1;
+    const size_t printIndent = indent + strlen(koroGraph->root) - 1;
+    for (int indentIndex = 0; indentIndex < printIndent; indentIndex++) {
+      fprintf(stdout, " ");
+    }
+    if (isIntersection) fprintf(stdout, "%lc", KORO_INTERSECTION_LEAF);
+    else fprintf(stdout, "%lc", KORO_LAST_LEAF);
+    for (size_t l = 0; l < 2; l++) fprintf(stdout, "%lc", KORO_PATH_TO_LEAF);
+    koro_drawGraph(&koroGraph->leafs[i], printIndent + KORO_PATH_LEN);
+  }
 }

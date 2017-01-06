@@ -12,15 +12,22 @@ KoroExecContext koro_getContext(char *sql, char *connInfo, KoroExecType type) {
 char *koro_getConnectionInfo() {
   char *env = koro_getFlavor();
   KoroConfig *config = koro_readConfig();
-  if (config == NULL) exit(KORO_CONFIG_MISSING);
+  if (config == NULL) {
+    NO_DB_CONFIG_MSG
+    return NULL;
+  }
   KoroEnvironmentConfig *envConfig = koro_findEnvConfig(config, env);
   free(env);
   if (envConfig == NULL) {
     koro_freeConfig(config);
-    exit(KORO_CONFIG_MISSING);
+    NO_DB_CONFIG_FOR_ENV_MSG
+    return NULL;
   }
 
   char *connInfo = koro_connectionInfo(envConfig);
+  if (connInfo == NULL)
+    return NULL;
+
   koro_freeConfig(config);
   return connInfo;
 }
@@ -31,8 +38,10 @@ char *koro_connectionInfo(KoroEnvironmentConfig *config) {
   return connectionInfo;
 }
 
-static void koro_exitNicely(PGconn *conn) {
-  PQfinish(conn);
+static void koro_exitNicely(PGconn **conn) {
+  if (*conn == NULL) return;
+  PQfinish(*conn);
+  *conn = NULL;
 }
 
 int koro_psqlExecute(KoroExecContext *context) {
@@ -42,7 +51,7 @@ int koro_psqlExecute(KoroExecContext *context) {
 
   if (PQstatus(conn) != CONNECTION_OK) {
     fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
-    koro_exitNicely(conn);
+    koro_exitNicely(&conn);
     return KORO_FAILURE;
   }
 
@@ -53,7 +62,7 @@ int koro_psqlExecute(KoroExecContext *context) {
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
       fprintf(stderr, "BEGIN command failed: %s\n", PQerrorMessage(conn));
       PQclear(res);
-      koro_exitNicely(conn);
+      koro_exitNicely(&conn);
       return KORO_FAILURE;
     }
     PQclear(res);
@@ -69,7 +78,7 @@ int koro_psqlExecute(KoroExecContext *context) {
     fprintf(stderr, "Execute sql failed: %s\n", reason);
     PQclear(res);
     free(formatted);
-    koro_exitNicely(conn);
+    koro_exitNicely(&conn);
     return KORO_FAILURE;
   }
   free(formatted);
@@ -80,7 +89,7 @@ int koro_psqlExecute(KoroExecContext *context) {
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
       fprintf(stderr, "FETCH ALL failed: %s\n", PQerrorMessage(conn));
       PQclear(res);
-      koro_exitNicely(conn);
+      koro_exitNicely(&conn);
       return KORO_FAILURE;
     }
     PQclear(res);
@@ -97,9 +106,8 @@ int koro_psqlExecute(KoroExecContext *context) {
   }
 
   if ((context->type & KORO_KEEP_CONNECTION) == 0)
-    PQfinish(conn);
-  else
-    context->conn = conn;
+    koro_exitNicely(&conn);
+  context->conn = conn;
 
   return KORO_SUCCESS;
 }

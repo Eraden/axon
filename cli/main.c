@@ -2,6 +2,7 @@
 #include "koro/db.h"
 
 int main(int argc, char **argv) {
+  setlocale(LC_ALL, "");
   if (argc <= 1) {
     koro_info();
     return 0;
