@@ -12,6 +12,8 @@
 #include <dirent.h>
 #include <ctype.h>
 
+#include "koro/config.h"
+
 #define KORO_COLOR_NRM  "\x1B[0m"
 #define KORO_COLOR_RED  "\x1B[31m"
 #define KORO_COLOR_GRN  "\x1B[32m"

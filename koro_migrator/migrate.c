@@ -215,7 +215,6 @@ int koro_migrate() {
 
   while (result == KORO_SUCCESS && migrations && *migrations) {
     KoroMigration *migration = *migrations;
-    // fprintf(stdout, "exec: %-90s\n", migration->path);
     if (!migration->perform) {
       migrations += 1;
       continue;
@@ -229,27 +228,31 @@ int koro_migrate() {
     context.sql = sql;
     result = koro_psqlExecute(&context);
     if (result != KORO_SUCCESS) {
-      fprintf(
-          stderr,
-          "%sFailure while executing \"%s\", aborting (all changes will be reversed)...%s\nSQL: %s\n",
-          KORO_COLOR_RED, (*migrations)->path, KORO_COLOR_NRM, sql
-      );
+      fprintf(stderr, "\n");
+      fprintf(stderr, "%-90s %s[FAILED]%s\n", migration->path, KORO_COLOR_RED, KORO_COLOR_NRM);
+      fprintf(stderr, "  aborting (all changes will be reversed)...\n\n%s[SQL]%s %s\n",
+              KORO_COLOR_CYN, KORO_COLOR_NRM, sql);
+      break;
     } else {
       fprintf(stdout, "%-90s %s[OK]%s\n", migration->path, KORO_COLOR_GRN, KORO_COLOR_NRM);
     }
     free(sql);
     migrations += 1;
   }
-  free(connInfo);
 
   if (result == KORO_SUCCESS) {
     context.sql = "END";
+    context.type = KORO_ONLY_QUERY;
+    koro_psqlExecute(&context);
+  } else {
+    context.sql = "ROLLBACK";
     context.type = KORO_ONLY_QUERY;
     koro_psqlExecute(&context);
   }
 
   migrations = migratorContext->migrations;
   while (migrations && *migrations) {
+    if (result != KORO_SUCCESS) break;
     if ((*migrations)->perform) {
       FILE *save = fopen("./.migrations", "a+");
       if (save) {
@@ -263,6 +266,7 @@ int koro_migrate() {
   }
   free(migratorContext->migrations);
   free(migratorContext);
+  free(connInfo);
 
   return result;
 }

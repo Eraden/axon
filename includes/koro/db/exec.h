@@ -6,6 +6,7 @@
 #include "koro/codes.h"
 
 #define KORO_EXECUTE_SQL_BUFFER_SIZE 1024
+#define KORO_CONN_INFO_SIZE 128
 
 typedef enum eKoroExecType {
   KORO_ONLY_QUERY = 0,

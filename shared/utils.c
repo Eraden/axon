@@ -24,6 +24,7 @@ char koro_mkdir(const char *path) {
 
 void koro_ensureStructure(void) {
   koro_mkdir("./conf");
+  koro_mkdir("./src");
   koro_mkdir("./src/db");
   koro_mkdir("./db");
   koro_mkdir("./db/migrate");
@@ -31,8 +32,29 @@ void koro_ensureStructure(void) {
   koro_mkdir("./db/seed");
 }
 
+static char *koro_cpyEnv(char *buffer, char *name) {
+  char *val = getenv(name);
+  if (val == NULL) return buffer;
+  const size_t len = strlen(buffer) + strlen(name) + strlen("=") + strlen(val) + strlen(" ") + 1;
+  char *ptr = calloc(sizeof(char), len);
+  strcat(ptr, name);
+  strcat(ptr, "=");
+  strcat(ptr, val);
+  strcat(ptr, " ");
+  strcat(ptr, buffer);
+  free(buffer);
+  return ptr;
+}
+
 int koro_runCommand(const char *command) {
-  FILE *cmd = popen(command, "r");
+  char *flavor = koro_getFlavor();
+  free(flavor);
+  char *runCmd = calloc(sizeof(char), strlen(command) + 1);
+  strcpy(runCmd, command);
+  runCmd = koro_cpyEnv(runCmd, "KORO_ENV");
+  runCmd = koro_cpyEnv(runCmd, "PATH");
+  FILE *cmd = popen(runCmd, "r");
+  free(runCmd);
   while (!feof(cmd)) {
     char c = (char) fgetc(cmd);
     if (c && isascii(c)) printf("%c", c);

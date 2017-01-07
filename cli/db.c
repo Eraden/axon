@@ -12,7 +12,7 @@ static char koro_isDbInitExists(void) {
 static char koro_dbInit() {
   if (koro_checkIO("./src") == 0) {
     fprintf(stderr, "No src directory in path!\n");
-    return 0;
+    return KORO_FAILURE;
   }
 
   koro_ensureStructure();
@@ -39,7 +39,7 @@ static char koro_dbInit() {
   KoroGraph koroGraph = {.root="src", .len=1, .leafs=srcChildren};
   koro_createInfo(&koroGraph);
 
-  return 1;
+  return KORO_SUCCESS;
 }
 
 static char koro_dbNew(int argc, char **argv) {
@@ -63,7 +63,7 @@ char koro_dbExec(int argc, char **argv) {
 
   if (strcmp(op, "init") != 0 && koro_isDbInitExists() == 0) {
     fprintf(stderr, "DB init does not exists! Type `koro db init` to create it\n");
-    return 0;
+    return KORO_FAILURE;
   } else if (strcmp(op, "init") == 0) {
     return koro_dbInit();
   } else if (strcmp(op, "new") == 0) {

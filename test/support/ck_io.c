@@ -1,10 +1,14 @@
 #include "./ck_io.h"
 #include "koro/db/exec.h"
 
+static int ck_removeDirectory(const char *path);
+
 static int stderrFD;
 static fpos_t stderrPos;
 static int stdoutFD;
 static fpos_t stdoutPos;
+int stderrReplaced;
+int stdoutReplaced;
 
 void ck_dropTestDb() {
   ck_redirectStderr(
@@ -21,6 +25,10 @@ void ck_createTestDb() {
 }
 
 void ck_catchStderr(const char *newStream) {
+  if (allMessages) return;
+  if (stderrReplaced) return;
+  stderrReplaced = 1;
+  koro_mkdir(logRoot);
   fflush(stderr);
   fgetpos(stderr, &stderrPos);
   stderrFD = dup(fileno(stderr));
@@ -29,6 +37,9 @@ void ck_catchStderr(const char *newStream) {
 }
 
 void ck_releaseStderr() {
+  if (allMessages) return;
+  if (!stderrReplaced) return;
+  stderrReplaced = 0;
   fflush(stderr);
   dup2(stderrFD, fileno(stderr));
   close(stderrFD);
@@ -37,6 +48,10 @@ void ck_releaseStderr() {
 }
 
 void ck_catchStdout(const char *newStream) {
+  if (allMessages) return;
+  if (stdoutReplaced) return;
+  stdoutReplaced = 1;
+  koro_mkdir(logRoot);
   fflush(stdout);
   fgetpos(stdout, &stdoutPos);
   stdoutFD = dup(fileno(stdout));
@@ -45,14 +60,15 @@ void ck_catchStdout(const char *newStream) {
 }
 
 void ck_releaseStdout() {
+  if (allMessages) return;
+  if (!stdoutReplaced) return;
+  stdoutReplaced = 0;
   fflush(stdout);
   dup2(stdoutFD, fileno(stdout));
   close(stdoutFD);
   clearerr(stdout);
   fsetpos(stdout, &stdoutPos);
 }
-
-static int ck_removeDirectory(const char *path);
 
 static int ck_removeDirectory(const char *path) {
   DIR *d = opendir(path);
@@ -132,16 +148,13 @@ char *_ck_findFile(const char *dir, const char *pattern) {
 
     if (buf) {
       struct stat statBuf;
-
       snprintf(buf, len, "%s/%s", dir, p->d_name);
-
       if (!stat(buf, &statBuf) && S_ISREG(statBuf.st_mode) && strstr(p->d_name, pattern)) {
         path = buf;
       } else {
         free(buf);
       }
     }
-
     r = r2;
   }
 
@@ -173,7 +186,8 @@ int _ck_io_check(const char *path) {
   return CK_FS_OK;
 }
 
-int _ck_io_contains(const char *path, const char *content) {
+int __attribute__((__used__))
+_ck_io_contains(const char *path, const char *content) {
   const size_t len = strlen(content);
   int pos = 0;
   int result = _ck_io_check(path);
@@ -191,14 +205,46 @@ int _ck_io_contains(const char *path, const char *content) {
 }
 
 void _ck_make_dummy_sql(const char *name, const char *sql, long long int timestamp) {
-  ck_catchStdout("./log/info.log");
-  FILE *f = NULL;
-  char path[1024];
-  memset(path, 0, 1024);
-  sprintf(path, "./db/migrate/%lli_%s.sql", timestamp, name);
-  f = fopen(path, "w+");
-  fprintf(f, "%s", sql);
-  fflush(f);
+  ck_redirectStdout(
+      FILE *f = NULL;
+      char path[1024];
+      memset(path, 0, 1024);
+      sprintf(path, "./db/migrate/%lli_%s.sql", timestamp, name);
+      f = fopen(path, "w+");
+      if (f == NULL) {
+        fprintf(stderr, "Could not create dummy sql, cannot open file!\n");
+        exit(EXIT_FAILURE);
+      }
+      fprintf(f, "%s", sql);
+      fflush(f);
+      fclose(f);
+  );
+}
+
+void ck_ensureDbEnv() {
+  koro_ensureStructure();
+  FILE *f;
+
+  f = fopen("./src/db/init.c", "w+");
+  if (f == NULL) {
+    fprintf(stderr, "Can't write to \"./db/src/init.c\"");
+    exit(EXIT_FAILURE);
+  }
+  fprintf(f, "%s", INIT_SOURCE_CONTENT);
   fclose(f);
+
+  f = fopen("./src/db/init.h", "w+");
+  if (f == NULL) {
+    fprintf(stderr, "Can't write to \"./db/src/init.h\"");
+    exit(EXIT_FAILURE);
+  }
+  fprintf(f, "%s", INIT_HEADER_CONTENT);
+  fclose(f);
+
+  koro_createConfig();
+}
+
+void ck_releaseAll() {
+  ck_releaseStderr();
   ck_releaseStdout();
 }

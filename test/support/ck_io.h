@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../test.h"
+#include "./variables.h"
 
 #define CK_FS_OK 0
 #define CK_FS_MISSING 1
@@ -20,6 +21,8 @@ void ck_catchStdout(const char *newStream);
 
 void ck_releaseStdout();
 
+void ck_releaseAll();
+
 int _ck_io_check(const char *path);
 
 int _ck_unlink(const char *path);
@@ -29,6 +32,8 @@ int _ck_io_contains(const char *path, const char *content);
 char *_ck_findFile(const char *dir, const char *pattern);
 
 void _ck_make_dummy_sql(const char *name, const char *sql, long long int timestamp);
+
+void ck_ensureDbEnv();
 
 #define ck_find_file_in(dir, pattern) _ck_findFile(dir, pattern)
 
@@ -51,13 +56,20 @@ void _ck_make_dummy_sql(const char *name, const char *sql, long long int timesta
   } while (0);
 
 #define ck_redirectStdout(code) \
-  ck_catchStdout("./log/info.log"); \
+  ck_catchStdout(infoLogPath); \
   code; \
   ck_releaseStdout();
 
 #define ck_redirectStderr(code) \
-  ck_catchStderr("./log/error.log"); \
+  ck_catchStderr(errorLogPath); \
   code; \
   ck_releaseStderr();
+
+#define ck_overrideFile(path, content) do { \
+  FILE *f = fopen(path, "w+"); \
+  if (f == NULL) break; \
+  fprintf(f, content); \
+  fclose(f); \
+} while (0)
 
 #define ck_unlink(path) _ck_unlink(path)

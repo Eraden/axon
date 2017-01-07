@@ -1,6 +1,7 @@
 #pragma once
 
-#include "utils.h"
+#include "koro/utils.h"
+
 #include <yaml.h>
 
 typedef struct sKoroEnvironmentConfig {
@@ -23,7 +24,7 @@ void koro_createConfig();
 
 char koro_configExists();
 
-KoroConfig *koro_readConfig();
+KoroConfig __attribute__((__malloc__))*koro_readConfig();
 KoroEnvironmentConfig *koro_findEnvConfig(KoroConfig *config, const char *env);
 
 void koro_freeConfig(KoroConfig *config);

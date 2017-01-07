@@ -211,16 +211,19 @@ char *koro_getFlavor(void) {
         fclose(f);
         return flavor;
       default: {
-        const size_t len = flavor ? strlen(flavor) + 1 : 1;
-        flavor = flavor ?
-                 realloc(flavor, sizeof(char) * (len + 1)) :
-                 calloc(sizeof(char), len + 1);
-        flavor[len - 1] = c;
-        flavor[len] = 0;
+        if (isascii(c)) {
+          const size_t len = flavor ? strlen(flavor) + 1 : 1;
+          flavor = flavor ?
+                   realloc(flavor, sizeof(char) * (len + 1)) :
+                   calloc(sizeof(char), len + 1);
+          flavor[len - 1] = c;
+          flavor[len] = 0;
+        }
         break;
       }
     }
   }
+  setenv("KORE_ENV", flavor, 0);
   fclose(f);
   return flavor;
 }
