@@ -14,6 +14,4 @@ void __attribute__((__used__)) _prepare_clear_state(void);
     chdir(here); \
   } while (0);
 
-#define IN_CLEAR_STATE(code) \
-  _prepare_clear_state(); \
-  ck_redirectStderr(ck_redirectStdout(code))
+#define IN_CLEAR_STATE(code) _prepare_clear_state(); ck_redirectStderr(ck_redirectStdout(code))

@@ -116,7 +116,7 @@ START_TEST(test_markedPerformed)
   ck_make_dummy_sql("five", "SELECT 1", now + 5);
   ck_make_dummy_sql("six", "SELECT 1", now + 6);
   ck_make_dummy_sql("seven", "SELECT 1", now + 7);
-  ck_overrideFile("./.migrations", "");
+  ck_unlink("./.migrations");
   FILE *f = fopen("./.migrations", "a+");
   for (short int i = 0; i < 5; i++) {
     fprintf(f, "%lli\n", now + i + 1);
