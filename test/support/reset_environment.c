@@ -24,10 +24,16 @@ void createInitHeader() {
   )
 }
 
-void _prepare_clear_state(void) {
+void __attribute__((__used__))
+_prepare_clear_state(void) {
+  GO_TO_DUMMY
+  ck_unlink("./.migrations");
+  ck_unlink("./log");
+  ck_unlink("./db");
+  ck_unlink("./src/db");
+
   ck_redirectStdout(
       ck_redirectStderr(
-          ck_unlink(logRoot);
       koro_ensureStructure();
       createInitSource();
       createInitHeader();

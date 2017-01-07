@@ -3,10 +3,6 @@
 static char *koro_getDatabaseName() {
   char *env = koro_getFlavor();
   KoroConfig *config = koro_readConfig();
-  if (config == NULL) {
-    NO_DB_CONFIG_MSG
-    return NULL;
-  }
   KoroEnvironmentConfig *envConfig = koro_findEnvConfig(config, env);
   free(env);
   if (envConfig == NULL) {
@@ -30,9 +26,9 @@ char koro_isDatabaseDrop(char *str) {
 }
 
 int koro_createDatabase() {
-  char *name = koro_getDatabaseName();
-  if (name == NULL)
+  if (koro_configExists() == 0)
     return KORO_CONFIG_MISSING;
+  char *name = koro_getDatabaseName();
   char *buffer = calloc(sizeof(char), strlen("CREATE DATABASE ") + strlen(name) + 1);
   strcat(buffer, "CREATE DATABASE ");
   strcat(buffer, name);
@@ -46,9 +42,10 @@ int koro_createDatabase() {
 }
 
 int koro_dropDatabase() {
-  char *name = koro_getDatabaseName();
-  if (name == NULL)
+  if (koro_configExists() == 0)
     return KORO_CONFIG_MISSING;
+
+  char *name = koro_getDatabaseName();
 
   char *buffer = calloc(sizeof(char), strlen("DROP DATABASE ") + strlen(name) + 1);
   strcat(buffer, "DROP DATABASE ");

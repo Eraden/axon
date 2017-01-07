@@ -177,11 +177,29 @@ static int kore_loadMigrationFiles(KoroMigratorContext *context) {
   return KORO_SUCCESS;
 }
 
-static KoroMigratorContext *koro_loadMigrations() {
+KoroMigratorContext *koro_loadMigrations(void) {
   KoroMigratorContext *context = calloc(sizeof(KoroMigratorContext), 1);
   kore_loadMigrationFiles(context);
   koro_markPerformed(context->migrations);
   return context;
+}
+
+void koro_freeMigrations(KoroMigratorContext *migratorContext, const char writeToSave) {
+  KoroMigration **migrations = migratorContext->migrations;
+  while (migrations && *migrations) {
+    if (writeToSave && (*migrations)->perform) {
+      FILE *save = fopen("./.migrations", "a+");
+      if (save) {
+        fprintf(save, "%i\n", (*migrations)->timestamp);
+        fclose(save);
+      }
+    }
+    if ((*migrations)->path) free((*migrations)->path);
+    free(*migrations);
+    migrations += 1;
+  }
+  free(migratorContext->migrations);
+  free(migratorContext);
 }
 
 char koro_isMigrate(const char *arg) {
@@ -250,22 +268,7 @@ int koro_migrate() {
     koro_psqlExecute(&context);
   }
 
-  migrations = migratorContext->migrations;
-  while (migrations && *migrations) {
-    if (result != KORO_SUCCESS) break;
-    if ((*migrations)->perform) {
-      FILE *save = fopen("./.migrations", "a+");
-      if (save) {
-        fprintf(save, "%i\n", (*migrations)->timestamp);
-        fclose(save);
-      }
-    }
-    if ((*migrations)->path) free((*migrations)->path);
-    free(*migrations);
-    migrations += 1;
-  }
-  free(migratorContext->migrations);
-  free(migratorContext);
+  koro_freeMigrations(migratorContext, result == KORO_SUCCESS);
   free(connInfo);
 
   return result;

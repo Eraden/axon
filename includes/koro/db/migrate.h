@@ -14,6 +14,10 @@ typedef struct sKoroMigratorContext {
   KoroMigration **migrations;
 } KoroMigratorContext;
 
+KoroMigratorContext *koro_loadMigrations(void);
+
+void koro_freeMigrations(KoroMigratorContext *koroMigratorContext, const char writeToSave);
+
 char koro_isMigrate(const char *arg);
 
 int koro_migrate();

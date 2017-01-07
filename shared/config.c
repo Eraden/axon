@@ -148,7 +148,10 @@ KoroConfig *koro_readConfig() {
   config->environments = NULL;
   config->len = 0;
 
-  if (koro_configExists() == 0) koro_createConfig();
+  if (koro_configExists() == 0) {
+    fprintf(stderr, "No database config found, creating from template...\n");
+    koro_createConfig();
+  }
   koro_readFile(config);
 
   return config;

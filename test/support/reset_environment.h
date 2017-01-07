@@ -3,7 +3,7 @@
 #include "../test.h"
 #include "./ck_io.h"
 
-void _prepare_clear_state(void);
+void __attribute__((__used__)) _prepare_clear_state(void);
 
 #define WITHIN(path, code) do { \
     char here[1024]; \

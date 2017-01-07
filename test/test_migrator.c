@@ -1,11 +1,8 @@
 #include "test_migrator.h"
 
 START_TEST(test_migratorMigrate)
-  ck_unlink("./db");
-  ck_unlink("./.migrations");
-  koro_ensureStructure();
-  ck_dropTestDb();
-  ck_createTestDb();
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
 
   ck_make_dummy_sql("create_examples", "CREATE TABLE examples ( id serial );", NOW() + 1);
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples ADD COLUMN login varchar;", NOW() + 2);
@@ -16,12 +13,38 @@ START_TEST(test_migratorMigrate)
 END_TEST
 
 START_TEST(test_migratorCreateDatabase)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
   int result;
+  ck_dropTestDb();
   ck_redirectStderr(
-      ck_dropTestDb();
       result = koro_createDatabase();
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
+END_TEST
+
+START_TEST(test_migratorCreateDatabaseWithoutConfig)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  ck_dropTestDb();
+  ck_unlink("./conf/database.yml");
+  int result;
+  ck_redirectStderr(
+      result = koro_createDatabase();
+  )
+  ck_assert_int_eq(result, KORO_CONFIG_MISSING);
+END_TEST
+
+START_TEST(test_migratorDropDatabaseWithoutConfig)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  ck_dropTestDb();
+  ck_unlink("./conf/database.yml");
+  int result;
+  ck_redirectStderr(
+      result = koro_dropDatabase();
+  )
+  ck_assert_int_eq(result, KORO_CONFIG_MISSING);
 END_TEST
 
 START_TEST(test_getContextNoConfig)
@@ -82,14 +105,42 @@ START_TEST(test_queryInTransaction)
   ck_assert_int_eq(result, KORO_SUCCESS);
 END_TEST
 
+START_TEST(test_markedPerformed)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  const long long int now = NOW();
+  ck_make_dummy_sql("one", "SELECT 1", now + 1);
+  ck_make_dummy_sql("two", "SELECT 1", now + 2);
+  ck_make_dummy_sql("tree", "SELECT 1", now + 3);
+  ck_make_dummy_sql("four", "SELECT 1", now + 4);
+  ck_make_dummy_sql("five", "SELECT 1", now + 5);
+  ck_make_dummy_sql("six", "SELECT 1", now + 6);
+  ck_make_dummy_sql("seven", "SELECT 1", now + 7);
+  ck_overrideFile("./.migrations", "");
+  FILE *f = fopen("./.migrations", "a+");
+  for (short int i = 0; i < 5; i++) {
+    fprintf(f, "%lli\n", now + i + 1);
+  }
+  fclose(f);
+
+  KoroMigratorContext *context = koro_loadMigrations();
+  for (unsigned int i = 0; i < 7; i++) {
+    ck_assert(context->migrations[i]->perform == (i >= 5));
+  }
+  koro_freeMigrations(context, 0);
+END_TEST
+
 void test_migrator(Suite *s) {
   TCase *testCaseDatabase = tcase_create("Migrator");
   tcase_add_test(testCaseDatabase, test_migratorCreateDatabase);
+  tcase_add_test(testCaseDatabase, test_migratorCreateDatabaseWithoutConfig);
+  tcase_add_test(testCaseDatabase, test_migratorDropDatabaseWithoutConfig);
   tcase_add_test(testCaseDatabase, test_migratorMigrate);
   tcase_add_test(testCaseDatabase, test_getContextNoConfig);
   tcase_add_test(testCaseDatabase, test_getContextNoDbName);
   tcase_add_test(testCaseDatabase, test_psqlExecNoConnInfo);
   tcase_add_test(testCaseDatabase, test_psqlExecInvalidConnInfo);
   tcase_add_test(testCaseDatabase, test_queryInTransaction);
+  tcase_add_test(testCaseDatabase, test_markedPerformed);
   suite_add_tcase(s, testCaseDatabase);
 }
