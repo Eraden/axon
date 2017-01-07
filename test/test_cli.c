@@ -6,7 +6,7 @@ START_TEST(test_invalidDirectory)
   int result;
   char *args[4] = {"inline", "db", "init", NULL};
   ck_redirectStderr(
-      result = koro_dbExec(4, args);
+      result = axon_dbExec(4, args);
   )
 
   ck_assert_int_eq(result, KORO_FAILURE);
@@ -22,7 +22,7 @@ START_TEST(test_dbInit)
 
   char *args[4] = {"inline", "db", "init", NULL};
   ck_redirectStdout(
-      koro_dbExec(4, args);
+      axon_dbExec(4, args);
   )
 
   ck_path_exists("./db");
@@ -45,7 +45,7 @@ START_TEST(test_unknownNew)
   int result;
 
   ck_redirectStdout(
-      result = koro_dbExec(5, args);
+      result = axon_dbExec(5, args);
   )
   ck_assert_int_eq(result, KORO_FAILURE);
 END_TEST
@@ -57,7 +57,7 @@ START_TEST(test_newTable)
   int result;
 
   ck_redirectStdout(
-      result = koro_dbExec(8, args);
+      result = axon_dbExec(8, args);
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
   ck_path_exists("./db");
@@ -74,7 +74,7 @@ START_TEST(test_dbChange)
   char *dropArgs[6] = {"inline", "db", "change", "accounts", "drop", "age:int"};
 
   ck_redirectStdout(
-      result = koro_dbExec(6, dropArgs);
+      result = axon_dbExec(6, dropArgs);
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
 
@@ -89,7 +89,7 @@ START_TEST(test_dbChange)
   char *addArgs[6] = {"inline", "db", "change", "posts", "add", "age:int"};
 
   ck_redirectStdout(
-      result = koro_dbExec(6, addArgs);
+      result = axon_dbExec(6, addArgs);
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
 
@@ -103,7 +103,7 @@ START_TEST(test_dbChange)
   ck_unlink("./db");
   char *removeArgs[6] = {"inline", "db", "change", "posts", "remove", "age:int"};
 
-  ck_redirectStderr(ck_redirectStdout(result = koro_dbExec(6, removeArgs)))
+  ck_redirectStderr(ck_redirectStdout(result = axon_dbExec(6, removeArgs)))
   ck_assert_int_eq(result, KORO_FAILURE);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
@@ -112,21 +112,21 @@ END_TEST
 
 START_TEST(test_info)
   GO_TO_DUMMY
-  ck_redirectStdout(koro_info());
-  ck_assert_int_eq(koro_isInfo("info"), 1);
-  ck_assert_int_eq(koro_isInfo("--info"), 1);
-  ck_assert_int_eq(koro_isInfo("-i"), 1);
-  ck_assert_int_eq(koro_isInfo("help"), 1);
-  ck_assert_int_eq(koro_isInfo("--help"), 1);
-  ck_assert_int_eq(koro_isInfo("-h"), 1);
-  ck_assert_int_eq(koro_isInfo("db"), 0);
-  ck_path_contains("./log/info.log", "koro");
+  ck_redirectStdout(axon_info());
+  ck_assert_int_eq(axon_isInfo("info"), 1);
+  ck_assert_int_eq(axon_isInfo("--info"), 1);
+  ck_assert_int_eq(axon_isInfo("-i"), 1);
+  ck_assert_int_eq(axon_isInfo("help"), 1);
+  ck_assert_int_eq(axon_isInfo("--help"), 1);
+  ck_assert_int_eq(axon_isInfo("-h"), 1);
+  ck_assert_int_eq(axon_isInfo("db"), 0);
+  ck_path_contains("./log/info.log", "axon");
 END_TEST
 
 START_TEST(test_isDB)
-  ck_assert_int_eq(koro_isDB("db"), 1);
-  ck_assert_int_eq(koro_isDB("database"), 0);
-  ck_assert_int_eq(koro_isDB("other"), 0);
+  ck_assert_int_eq(axon_isDB("db"), 1);
+  ck_assert_int_eq(axon_isDB("database"), 0);
+  ck_assert_int_eq(axon_isDB("other"), 0);
 END_TEST
 
 START_TEST(test_dbInitExists)
@@ -137,10 +137,10 @@ START_TEST(test_dbInitExists)
   int result;
 
   ck_redirectStderr(
-      result = koro_dbExec(5, args);
+      result = axon_dbExec(5, args);
   )
   ck_assert_int_eq(result, KORO_FAILURE);
-  ck_path_contains("./log/error.info", "DB init does not exists! Type `koro db init` to create it");
+  ck_path_contains("./log/error.info", "DB init does not exists! Type `axon db init` to create it");
 END_TEST
 
 START_TEST(test_DBmigrate)
@@ -156,7 +156,7 @@ START_TEST(test_DBmigrate)
   int result = 0;
 
   ck_redirectStdout(
-      result = koro_dbExec(3, args);
+      result = axon_dbExec(3, args);
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
 END_TEST
@@ -171,7 +171,7 @@ START_TEST(test_createDB)
   int result = 0;
 
   ck_redirectStdout(
-      result = koro_dbExec(3, args);
+      result = axon_dbExec(3, args);
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
 END_TEST
@@ -187,7 +187,7 @@ START_TEST(test_dropDB)
   int result = 0;
 
   ck_redirectStdout(
-      result = koro_dbExec(3, args);
+      result = axon_dbExec(3, args);
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
 END_TEST
@@ -201,7 +201,7 @@ START_TEST(test_unknownCmd)
   int result = 0;
 
   ck_redirectStdout(
-      result = koro_dbExec(3, args);
+      result = axon_dbExec(3, args);
   )
   ck_assert_int_eq(result, KORO_UNKNOWN_COMMAND);
 END_TEST

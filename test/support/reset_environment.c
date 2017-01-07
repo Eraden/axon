@@ -34,10 +34,11 @@ _prepare_clear_state(void) {
 
   ck_redirectStdout(
       ck_redirectStderr(
-      koro_ensureStructure();
+      axon_ensureStructure();
       createInitSource();
       createInitHeader();
-      koro_createConfig();
+      axon_createConfig();
+      axon_createOrder();
       ck_dropTestDb();
       ck_createTestDb();
   )

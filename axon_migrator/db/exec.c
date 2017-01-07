@@ -1,7 +1,7 @@
-#include "koro/db/exec.h"
+#include "axon/db/exec.h"
 
-KoroExecContext koro_getContext(char *sql, char *connInfo, KoroExecType type) {
-  KoroExecContext context;
+AxonExecContext axon_getContext(char *sql, char *connInfo, AxonExecType type) {
+  AxonExecContext context;
   context.connInfo = connInfo;
   context.sql = sql;
   context.type = type;
@@ -9,28 +9,28 @@ KoroExecContext koro_getContext(char *sql, char *connInfo, KoroExecType type) {
   return context;
 }
 
-char *koro_getConnectionInfo() {
-  char *env = koro_getFlavor();
-  KoroConfig *config = koro_readConfig();
-  KoroEnvironmentConfig *envConfig = koro_findEnvConfig(config, env);
+char *axon_getConnectionInfo() {
+  char *env = axon_getFlavor();
+  AxonConfig *config = axon_readConfig();
+  AxonEnvironmentConfig *envConfig = axon_findEnvConfig(config, env);
   free(env);
   if (envConfig == NULL) {
-    koro_freeConfig(config);
+    axon_freeConfig(config);
     NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 
-  char *connInfo = koro_connectionInfo(envConfig);
+  char *connInfo = axon_connectionInfo(envConfig);
   if (connInfo == NULL) {
-    koro_freeConfig(config);
+    axon_freeConfig(config);
     return NULL;
   }
 
-  koro_freeConfig(config);
+  axon_freeConfig(config);
   return connInfo;
 }
 
-char *koro_connectionInfo(KoroEnvironmentConfig *config) {
+char *axon_connectionInfo(AxonEnvironmentConfig *config) {
   if (config->name == NULL)
     return NULL;
   char *connectionInfo = calloc(sizeof(char), KORO_CONN_INFO_SIZE);
@@ -38,7 +38,7 @@ char *koro_connectionInfo(KoroEnvironmentConfig *config) {
   return connectionInfo;
 }
 
-static void koro_exitNicely(KoroExecContext *context) {
+static void axon_exitNicely(AxonExecContext *context) {
   if (context->type & KORO_KEEP_CONNECTION)
     return;
   PGconn **conn = &context->conn;
@@ -47,7 +47,7 @@ static void koro_exitNicely(KoroExecContext *context) {
   *conn = NULL;
 }
 
-int koro_psqlExecute(KoroExecContext *context) {
+int axon_psqlExecute(AxonExecContext *context) {
   if (context->connInfo == NULL && context->conn == NULL)
     return KORO_CONFIG_MISSING;
   PGconn *conn = context->conn ? context->conn : PQconnectdb(context->connInfo);
@@ -55,7 +55,7 @@ int koro_psqlExecute(KoroExecContext *context) {
 
   if (PQstatus(conn) != CONNECTION_OK) {
     fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
-    koro_exitNicely(context);
+    axon_exitNicely(context);
     return KORO_FAILURE;
   }
 
@@ -66,7 +66,7 @@ int koro_psqlExecute(KoroExecContext *context) {
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
       fprintf(stderr, "BEGIN command failed: %s\n", PQerrorMessage(conn));
       PQclear(res);
-      koro_exitNicely(context);
+      axon_exitNicely(context);
       return KORO_FAILURE;
     }
     PQclear(res);
@@ -82,7 +82,7 @@ int koro_psqlExecute(KoroExecContext *context) {
     fprintf(stderr, "Execute sql failed: '%s'\n", reason);
     PQclear(res);
     free(formatted);
-    koro_exitNicely(context);
+    axon_exitNicely(context);
     return KORO_FAILURE;
   }
 
@@ -94,7 +94,7 @@ int koro_psqlExecute(KoroExecContext *context) {
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
       fprintf(stderr, "FETCH ALL failed: '%s'\n", PQerrorMessage(conn));
       PQclear(res);
-      koro_exitNicely(context);
+      axon_exitNicely(context);
       return KORO_FAILURE;
     }
     PQclear(res);
@@ -110,7 +110,7 @@ int koro_psqlExecute(KoroExecContext *context) {
     PQclear(res);
   }
 
-  koro_exitNicely(context);
+  axon_exitNicely(context);
 
   return KORO_SUCCESS;
 }

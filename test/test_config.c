@@ -4,16 +4,16 @@
 START_TEST(test_readConfig)
   ck_unlink("./conf/database.yml");
 
-  KoroConfig *koroConfig = koro_readConfig();
-  ck_assert_int_eq(koroConfig->len, 3);
+  AxonConfig *axonConfig = axon_readConfig();
+  ck_assert_int_eq(axonConfig->len, 3);
 
-  KoroEnvironmentConfig **configs = koroConfig->configs;
-  char **keys = koroConfig->environments;
+  AxonEnvironmentConfig **configs = axonConfig->configs;
+  char **keys = axonConfig->environments;
 
   ck_assert_ptr_ne(keys, NULL);
   ck_assert_ptr_ne(configs, NULL);
 
-  KoroEnvironmentConfig *c = NULL;
+  AxonEnvironmentConfig *c = NULL;
   const char *key = NULL;
 
   c = *configs;
@@ -58,7 +58,7 @@ START_TEST(test_readConfig)
   ck_assert_str_eq(c->name, "kore_test");
   ck_assert_int_eq(c->port, 5432);
 
-  koro_freeConfig(koroConfig);
+  axon_freeConfig(axonConfig);
 END_TEST
 
 START_TEST(test_flavorFromFile)
@@ -66,7 +66,7 @@ START_TEST(test_flavorFromFile)
   IN_CLEAR_STATE(/* */);
   ck_overrideFile("./.flavor", "test");
   unsetenv("KORE_ENV");
-  char *flavor = koro_getFlavor();
+  char *flavor = axon_getFlavor();
   ck_assert_str_eq(flavor, "test");
   free(flavor);
   putenv("KORE_ENV=test");
@@ -77,7 +77,7 @@ START_TEST(test_flavorFromMultilineFile)
   IN_CLEAR_STATE(/* */);
   ck_overrideFile("./.flavor", "test\ndev");
   unsetenv("KORE_ENV");
-  char *flavor = koro_getFlavor();
+  char *flavor = axon_getFlavor();
   ck_assert_str_eq(flavor, "test");
   free(flavor);
   putenv("KORE_ENV=test");
@@ -88,7 +88,7 @@ START_TEST(test_flavorNoSource)
   IN_CLEAR_STATE(/* */);
   ck_unlink("./.flavor");
   unsetenv("KORE_ENV");
-  char *flavor = koro_getFlavor();
+  char *flavor = axon_getFlavor();
   ck_assert_str_eq(flavor, "dev");
   free(flavor);
   putenv("KORE_ENV=test");

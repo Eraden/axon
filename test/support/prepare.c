@@ -39,7 +39,7 @@ void prepare() {
   GO_TO_DUMMY
   ck_unlink(logRoot);
   ck_unlink("./.migrations");
-  koro_mkdir(logRoot);
+  axon_mkdir(logRoot);
   ck_dropTestDb();
 }
 

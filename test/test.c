@@ -2,6 +2,7 @@
 #include "test_config.h"
 #include "test_cli.h"
 #include "test_migrator.h"
+#include "test_utils.h"
 
 int main(int argc, char **argv) {
   setlocale(LC_ALL, "");
@@ -13,13 +14,14 @@ int main(int argc, char **argv) {
 
   prepare();
 
-  Suite *s = suite_create("koro");
+  Suite *s = suite_create("axon");
   SRunner *sr;
   int number_failed = 0;
 
   sr = srunner_create(s);
   srunner_set_fork_status(sr, CK_NOFORK);
 
+  test_utils(s);
   test_config(s);
   test_cli(s);
   test_migrator(s);

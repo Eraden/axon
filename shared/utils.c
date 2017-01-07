@@ -1,11 +1,11 @@
-#include "koro/utils.h"
+#include "axon/utils.h"
 
 static const u_int32_t KORO_LAST_LEAF = L'└';
 static const u_int32_t KORO_INTERSECTION_LEAF = L'├';
 static const u_int32_t KORO_PATH_TO_LEAF = L'─';
 static const size_t KORO_PATH_LEN = 3;
 
-char koro_checkIO(const char *path) {
+char axon_checkIO(const char *path) {
   FILE *f = fopen(path, "r");
   if (f == NULL) return 0;
   char r = 0;
@@ -14,25 +14,48 @@ char koro_checkIO(const char *path) {
   return r;
 }
 
-char koro_mkdir(const char *path) {
-  if (koro_checkIO(path) == 0 && mkdir(path, S_IRWXU | S_IRWXG) != 0) {
+char axon_mkdir(const char *path) {
+  if (axon_checkIO(path) == 0 && mkdir(path, S_IRWXU | S_IRWXG) != 0) {
     fprintf(stderr, "No '%s' directory in path!\n", path);
     return 0;
   }
   return 1;
 }
 
-void koro_ensureStructure(void) {
-  koro_mkdir("./conf");
-  koro_mkdir("./src");
-  koro_mkdir("./src/db");
-  koro_mkdir("./db");
-  koro_mkdir("./db/migrate");
-  koro_mkdir("./db/setup");
-  koro_mkdir("./db/seed");
+char axon_touch(const char *path) {
+  const size_t len = strlen(path);
+  char *p = calloc(sizeof(char), len + 1);
+  strcpy(p, path);
+  for (int i = (int) len; i >= 0; --i) {
+    if (p[i] == '/') {
+      p[i] = 0;
+      break;
+    } else {
+      p[i] = 0;
+    }
+  }
+  int res = axon_mkdir(p);
+  free(p);
+  if (res == 0) return 0;
+  FILE *f = fopen(path, "a+");
+  if (f == NULL) return 0;
+  fflush(f);
+  fclose(f);
+
+  return 1;
 }
 
-static char *koro_cpyEnv(char *buffer, char *name) {
+void axon_ensureStructure(void) {
+  axon_mkdir("./conf");
+  axon_mkdir("./src");
+  axon_mkdir("./src/db");
+  axon_mkdir("./db");
+  axon_mkdir("./db/migrate");
+  axon_mkdir("./db/setup");
+  axon_mkdir("./db/seed");
+}
+
+static char *axon_cpyEnv(char *buffer, char *name) {
   char *val = getenv(name);
   if (val == NULL) return buffer;
   const size_t len = strlen(buffer) + strlen(name) + strlen("=") + strlen(val) + strlen(" ") + 1;
@@ -46,13 +69,13 @@ static char *koro_cpyEnv(char *buffer, char *name) {
   return ptr;
 }
 
-int koro_runCommand(const char *command) {
-  char *flavor = koro_getFlavor();
+int axon_runCommand(const char *command) {
+  char *flavor = axon_getFlavor();
   free(flavor);
   char *runCmd = calloc(sizeof(char), strlen(command) + 1);
   strcpy(runCmd, command);
-  runCmd = koro_cpyEnv(runCmd, "KORO_ENV");
-  runCmd = koro_cpyEnv(runCmd, "PATH");
+  runCmd = axon_cpyEnv(runCmd, "KORO_ENV");
+  runCmd = axon_cpyEnv(runCmd, "PATH");
   FILE *cmd = popen(runCmd, "r");
   free(runCmd);
   while (!feof(cmd)) {
@@ -64,23 +87,40 @@ int koro_runCommand(const char *command) {
   return result;
 }
 
-void koro_createInfo(KoroGraph *koroGraph) {
+void axon_createInfo(AxonGraph *axonGraph) {
   fprintf(stdout, "Files created:\n");
-  koro_drawGraph(koroGraph, 0);
+  axon_drawGraph(axonGraph, 0);
 }
 
-void koro_drawGraph(KoroGraph *koroGraph, size_t indent) {
-  fprintf(stdout, "%s\n", koroGraph->root);
-  const size_t len = koroGraph->len;
+void axon_drawGraph(AxonGraph *axonGraph, size_t indent) {
+  fprintf(stdout, "%s\n", axonGraph->root);
+  const size_t len = axonGraph->len;
   for (int i = 0; i < len; i++) {
     char isIntersection = i < len - 1;
-    const size_t printIndent = indent + strlen(koroGraph->root) - 1;
+    const size_t printIndent = indent + strlen(axonGraph->root) - 1;
     for (int indentIndex = 0; indentIndex < printIndent; indentIndex++) {
       fprintf(stdout, " ");
     }
     if (isIntersection) fprintf(stdout, "%lc", KORO_INTERSECTION_LEAF);
     else fprintf(stdout, "%lc", KORO_LAST_LEAF);
     for (size_t l = 0; l < 2; l++) fprintf(stdout, "%lc", KORO_PATH_TO_LEAF);
-    koro_drawGraph(&koroGraph->leafs[i], printIndent + KORO_PATH_LEN);
+    axon_drawGraph(&axonGraph->leafs[i], printIndent + KORO_PATH_LEN);
   }
+}
+
+char *axon_getDatabaseName() {
+  char *env = axon_getFlavor();
+  AxonConfig *config = axon_readConfig();
+  AxonEnvironmentConfig *envConfig = axon_findEnvConfig(config, env);
+  free(env);
+  if (envConfig == NULL) {
+    axon_freeConfig(config);
+    NO_DB_CONFIG_FOR_ENV_MSG
+    return NULL;
+  }
+
+  char *name = calloc(sizeof(char), strlen(envConfig->name) + 1);
+  strcat(name, envConfig->name);
+  axon_freeConfig(config);
+  return name;
 }

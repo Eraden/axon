@@ -1,6 +1,6 @@
-#include "koro/db/table.h"
+#include "axon/db/table.h"
 
-static void koro_freeColumn(KoroColumnData *column) {
+static void axon_freeColumn(AxonColumnData *column) {
   if (column == NULL) return;
   if (column->name) free(column->name);
   if (column->type) free(column->type);
@@ -8,7 +8,7 @@ static void koro_freeColumn(KoroColumnData *column) {
   free(column);
 }
 
-static FILE *koro_createMigration(char **fileName, const char *pattern, const char *tableName) {
+static FILE *axon_createMigration(char **fileName, const char *pattern, const char *tableName) {
   char path[KORO_MIGRATION_PATH_LEN];
   memset(path, 0, KORO_MIGRATION_PATH_LEN);
   memset(*fileName, 0, KORO_MIGRATION_FILE_NAME_LEN);
@@ -18,7 +18,7 @@ static FILE *koro_createMigration(char **fileName, const char *pattern, const ch
   return f;
 }
 
-static KoroColumnData *koro_getColumn(char *rawColumn) {
+static AxonColumnData *axon_getColumn(char *rawColumn) {
   const size_t columnLen = strlen(rawColumn) + 1;
 
   char *columnName = calloc(sizeof(char), columnLen);
@@ -47,34 +47,34 @@ static KoroColumnData *koro_getColumn(char *rawColumn) {
     columnType = calloc(sizeof(char), strlen(isId ? "varchar" : "serial") + 1);
     strcpy(columnType, isId ? "varchar" : "serial");
   }
-  KoroColumnData *column = (KoroColumnData *) calloc(sizeof(KoroColumnData), 1);
+  AxonColumnData *column = (AxonColumnData *) calloc(sizeof(AxonColumnData), 1);
   column->name = columnName;
   column->type = columnType;
   column->defaultValue = columnDefault;
   return column;
 }
 
-static void koro_appendColumn(KoroTableData *table, KoroColumnData *column) {
+static void axon_appendColumn(AxonTableData *table, AxonColumnData *column) {
   table->columnsCount += 1;
   table->columns = table->columns ?
-                   realloc(table->columns, sizeof(KoroColumnData *) * table->columnsCount) :
-                   calloc(sizeof(KoroColumnData *), table->columnsCount);
+                   realloc(table->columns, sizeof(AxonColumnData *) * table->columnsCount) :
+                   calloc(sizeof(AxonColumnData *), table->columnsCount);
   table->columns[table->columnsCount - 1] = column;
 }
 
-static void koro_createMigrationInfo(char *fileName) {
-  KoroGraph createdFiles[1] = {{.root=fileName, .len=0}};
-  KoroGraph dbChildren[1] = {{.root="migrate", .len=1, .leafs=createdFiles}};
-  KoroGraph db = {.root="db", .len=1, .leafs=dbChildren};
-  koro_createInfo(&db);
+static void axon_createMigrationInfo(char *fileName) {
+  AxonGraph createdFiles[1] = {{.root=fileName, .len=0}};
+  AxonGraph dbChildren[1] = {{.root="migrate", .len=1, .leafs=createdFiles}};
+  AxonGraph db = {.root="db", .len=1, .leafs=dbChildren};
+  axon_createInfo(&db);
 }
 
-char koro_dbNewTable(int argc, char **argv) {
+char axon_dbNewTable(int argc, char **argv) {
   if (argc < 5) return 0;
-  koro_ensureStructure();
+  axon_ensureStructure();
 
   const char *name = argv[4];
-  KoroTableData table;
+  AxonTableData table;
   table.columns = NULL;
   table.columnsCount = 0;
 
@@ -82,51 +82,51 @@ char koro_dbNewTable(int argc, char **argv) {
     char *rawColumn = argv[i];
     if (rawColumn == NULL) break;
     else if (strcmp(rawColumn, "id") == 0) {
-      koro_appendColumn(&table, koro_getColumn("id:serial"));
+      axon_appendColumn(&table, axon_getColumn("id:serial"));
     } else if (strcmp(rawColumn, "timestamps") == 0) {
-      koro_appendColumn(&table, koro_getColumn("created_at:timestamp"));
-      koro_appendColumn(&table, koro_getColumn("updated_at:timestamp"));
+      axon_appendColumn(&table, axon_getColumn("created_at:timestamp"));
+      axon_appendColumn(&table, axon_getColumn("updated_at:timestamp"));
     } else {
-      koro_appendColumn(&table, koro_getColumn(rawColumn));
+      axon_appendColumn(&table, axon_getColumn(rawColumn));
     }
   }
-  if (table.columns == NULL) koro_appendColumn(&table, koro_getColumn("id"));
+  if (table.columns == NULL) axon_appendColumn(&table, axon_getColumn("id"));
 
   char *fileName = calloc(sizeof(char), KORO_MIGRATION_FILE_NAME_LEN);
-  FILE *f = koro_createMigration(&fileName, "%llu_create_table_%s.sql", name);
+  FILE *f = axon_createMigration(&fileName, "%llu_create_table_%s.sql", name);
   if (f == NULL)
     return KORO_FAILURE;
 
   fprintf(f, "CREATE TABLE %s (\n", name);
   for (size_t i = 0; i < table.columnsCount; i++) {
-    KoroColumnData *column = table.columns[i];
+    AxonColumnData *column = table.columns[i];
     if (i > 0) fprintf(f, ",\n");
     fprintf(f, "  %s %s", column->name, column->type);
-    koro_freeColumn(column);
+    axon_freeColumn(column);
   }
   fprintf(f, "\n);\n");
   if (table.columns) free(table.columns);
   fclose(f);
 
-  koro_createMigrationInfo(fileName);
+  axon_createMigrationInfo(fileName);
   free(fileName);
 
   return KORO_SUCCESS;
 }
 
-char koro_dbChange(int argc, char **argv) {
+char axon_dbChange(int argc, char **argv) {
   if (argc < 6) return 0;
-  koro_ensureStructure();
+  axon_ensureStructure();
 
   const char *name = argv[3];
   const char *op = argv[4];
   char result;
 
   char *fileName = calloc(sizeof(char), KORO_MIGRATION_FILE_NAME_LEN);
-  FILE *f = koro_createMigration(&fileName, "%llu_change_table_%s.sql", name);
+  FILE *f = axon_createMigration(&fileName, "%llu_change_table_%s.sql", name);
   if (f == NULL)
     return KORO_FAILURE;
-  KoroColumnData *column = koro_getColumn(argv[5]);
+  AxonColumnData *column = axon_getColumn(argv[5]);
 
   fprintf(f, "ALTER TABLE %s", name);
 
@@ -142,9 +142,9 @@ char koro_dbChange(int argc, char **argv) {
   }
 
   fclose(f);
-  koro_createMigrationInfo(fileName);
+  axon_createMigrationInfo(fileName);
   free(fileName);
 
-  koro_freeColumn(column);
+  axon_freeColumn(column);
   return result;
 }

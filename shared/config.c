@@ -1,7 +1,8 @@
-#include "koro/config.h"
+#include "axon/config.h"
 
-void koro_createConfig() {
-  koro_ensureStructure();
+void axon_createConfig(void) {
+  axon_ensureStructure();
+  if (axon_configExists()) return;
   FILE *config = fopen("./conf/database.yml", "w+");
   if (config == NULL) {
     fprintf(stderr, "Error: %s\n", strerror(errno));
@@ -26,11 +27,33 @@ void koro_createConfig() {
   fclose(config);
 }
 
-char koro_configExists() {
-  return koro_checkIO("./conf/database.yml");
+char axon_configExists(void) {
+  return axon_checkIO("./conf/database.yml");
 }
 
-static void koro_fetchConfig(KoroEnvironmentConfig *c, char *name, char *value) {
+void axon_createOrder(void) {
+  axon_ensureStructure();
+  if (axon_orderExists()) return;
+  if (axon_touch("./db/order.yml") != 1) return;
+
+  FILE *f = fopen("./db/order.yml", "w+");
+  if (f == NULL) return;
+  fprintf(
+      f,
+      ""
+          "setup:\n"
+          "  - first.sql\n"
+          "seed:\n"
+          "  - first.sql\n"
+  );
+  fclose(f);
+}
+
+char axon_orderExists(void) {
+  return axon_checkIO("./db/order.yml");
+}
+
+static void axon_fetchConfig(AxonEnvironmentConfig *c, char *name, char *value) {
   if (c == NULL) {
     if (name) free(name);
     if (value) free(value);
@@ -53,14 +76,14 @@ static void koro_fetchConfig(KoroEnvironmentConfig *c, char *name, char *value) 
   free(name);
 }
 
-static void koro_readFile(KoroConfig *config) {
+static void axon_readFile(AxonConfig *config) {
   FILE *f = fopen("./conf/database.yml", "rb");
   if (f == NULL) return;
   yaml_parser_t parser;
   yaml_parser_initialize(&parser);
   yaml_parser_set_input_file(&parser, f);
   yaml_token_t token;
-  KoroEnvironmentConfig *c = NULL;
+  AxonEnvironmentConfig *c = NULL;
 
   char *key = NULL;
   char *value = NULL;
@@ -70,9 +93,6 @@ static void koro_readFile(KoroConfig *config) {
     yaml_parser_scan(&parser, &token);
 
     switch (token.type) {
-      case YAML_STREAM_START_TOKEN:
-      case YAML_STREAM_END_TOKEN:
-        break;
       case YAML_KEY_TOKEN:
         if (token.start_mark.column != 0)
           type = token.type;
@@ -80,13 +100,8 @@ static void koro_readFile(KoroConfig *config) {
       case YAML_VALUE_TOKEN:
         type = token.type;
         break;
-      case YAML_BLOCK_SEQUENCE_START_TOKEN:
-      case YAML_BLOCK_ENTRY_TOKEN:
-        break;
-      case YAML_BLOCK_END_TOKEN:
-        type = YAML_BLOCK_MAPPING_START_TOKEN;
-        break;
       case YAML_BLOCK_MAPPING_START_TOKEN:
+      case YAML_BLOCK_END_TOKEN:
         type = YAML_BLOCK_MAPPING_START_TOKEN;
         break;
       case YAML_SCALAR_TOKEN:
@@ -95,14 +110,14 @@ static void koro_readFile(KoroConfig *config) {
             value = calloc(sizeof(char), strlen((char *) token.data.scalar.value) + 1);
             strcpy(value, (char *) token.data.scalar.value);
             type = YAML_NO_TOKEN;
-            koro_fetchConfig(c, key, value);
+            axon_fetchConfig(c, key, value);
             key = NULL;
             value = NULL;
             break;
           }
           case YAML_KEY_TOKEN: {
             if (key != NULL) {
-              koro_fetchConfig(c, key, value);
+              axon_fetchConfig(c, key, value);
             }
             key = calloc(sizeof(char), strlen((char *) token.data.scalar.value) + 1);
             strcpy(key, (char *) token.data.scalar.value);
@@ -112,11 +127,11 @@ static void koro_readFile(KoroConfig *config) {
             type = YAML_NO_TOKEN;
             char *env = calloc(sizeof(char), strlen((char *) token.data.scalar.value) + 1);
             strcpy(env, (char *) token.data.scalar.value);
-            c = calloc(sizeof(KoroEnvironmentConfig), 1);
+            c = calloc(sizeof(AxonEnvironmentConfig), 1);
             config->len += 1;
             config->configs = config->configs ?
-                              realloc(config->configs, sizeof(KoroEnvironmentConfig *) * (config->len + 1)) :
-                              calloc(sizeof(KoroEnvironmentConfig *), config->len + 1);
+                              realloc(config->configs, sizeof(AxonEnvironmentConfig *) * (config->len + 1)) :
+                              calloc(sizeof(AxonEnvironmentConfig *), config->len + 1);
             config->configs[config->len - 1] = c;
             config->configs[config->len] = 0;
             config->environments = config->environments ?
@@ -130,6 +145,10 @@ static void koro_readFile(KoroConfig *config) {
             break;
         }
         break;
+      case YAML_STREAM_START_TOKEN:
+      case YAML_STREAM_END_TOKEN:
+      case YAML_BLOCK_SEQUENCE_START_TOKEN:
+      case YAML_BLOCK_ENTRY_TOKEN:
       default:
         break;
     }
@@ -142,25 +161,25 @@ static void koro_readFile(KoroConfig *config) {
   fclose(f);
 }
 
-KoroConfig *koro_readConfig() {
-  KoroConfig *config = calloc(sizeof(KoroConfig), 1);
+AxonConfig *axon_readConfig() {
+  AxonConfig *config = calloc(sizeof(AxonConfig), 1);
   config->configs = NULL;
   config->environments = NULL;
   config->len = 0;
 
-  if (koro_configExists() == 0) {
+  if (axon_configExists() == 0) {
     fprintf(stderr, "No database config found, creating from template...\n");
-    koro_createConfig();
+    axon_createConfig();
   }
-  koro_readFile(config);
+  axon_readFile(config);
 
   return config;
 }
 
-KoroEnvironmentConfig *koro_findEnvConfig(KoroConfig *config, const char *env) {
+AxonEnvironmentConfig *axon_findEnvConfig(AxonConfig *config, const char *env) {
   if (config == NULL) return NULL;
   if (config->environments == NULL) return NULL;
-  KoroEnvironmentConfig *c = NULL;
+  AxonEnvironmentConfig *c = NULL;
   char **keys = config->environments;
   int offset = 0;
 
@@ -173,9 +192,9 @@ KoroEnvironmentConfig *koro_findEnvConfig(KoroConfig *config, const char *env) {
   return c;
 }
 
-void koro_freeConfig(KoroConfig *config) {
+void axon_freeConfig(AxonConfig *config) {
   char **keys = config->environments;
-  KoroEnvironmentConfig **configs = config->configs;
+  AxonEnvironmentConfig **configs = config->configs;
   while (keys && *keys) {
     free(*keys);
     if ((*configs)->name) free((*configs)->name);
@@ -190,7 +209,7 @@ void koro_freeConfig(KoroConfig *config) {
   free(config);
 }
 
-char *koro_getFlavor(void) {
+char *axon_getFlavor(void) {
   char *flavor = NULL;
   if (getenv("KORE_ENV")) {
     const char *env = getenv("KORE_ENV");
@@ -229,4 +248,32 @@ char *koro_getFlavor(void) {
   setenv("KORE_ENV", flavor, 0);
   fclose(f);
   return flavor;
+}
+
+AxonOrder __attribute__((__malloc__))*axon_readOrder(void) {
+  if (!axon_orderExists())
+    return NULL;
+
+  AxonOrder *order = calloc(sizeof(AxonOrder), 1);
+  return order;
+}
+
+void axon_freeOrder(AxonOrder *order) {
+  char **files = NULL;
+
+  files = order->seedFiles;
+  while (files && *files) {
+    free(*files);
+    files += 1;
+  }
+  if (order->seedFiles) free(order->seedFiles);
+
+  files = order->setupFiles;
+  while (files && *files) {
+    free(*files);
+    files += 1;
+  }
+  if (order->setupFiles) free(order->setupFiles);
+
+  free(order);
 }

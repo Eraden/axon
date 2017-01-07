@@ -42,9 +42,11 @@ SET(
 
 SET(
     KORO_MIGRATOR_SOURCE_FILES
-    koro_migrator/db/exec.c
-    koro_migrator/migrate.c
-    koro_migrator/create.c
+    axon_migrator/db/exec.c
+    axon_migrator/migrate.c
+    axon_migrator/create.c
+    axon_migrator/drop.c
+    axon_migrator/setup.c
 )
 
 SET(
@@ -55,17 +57,18 @@ SET(
     test/support/prepare.c
     cli/db/init.c
     test/test_cli.c
-    test/test_cli.h
     test/test_migrator.c
-    test/test_migrator.h
-    test/test_config.c test/test_config.h test/support/variables.h test/support/reset_environment.c)
+    test/test_config.c
+    test/test_utils.c
+    test/support/reset_environment.c
+)
 
-ADD_EXECUTABLE(koro ${KORO_SOURCE_FILES} cli/main.c)
-ADD_EXECUTABLE(koro-migrator ${KORO_MIGRATOR_SOURCE_FILES} koro_migrator/main.c)
-ADD_EXECUTABLE(koro_test ${TEST_SOURCE_FILES} test/test.c)
+ADD_EXECUTABLE(axon ${KORO_SOURCE_FILES} cli/main.c)
+ADD_EXECUTABLE(axon-migrator ${KORO_MIGRATOR_SOURCE_FILES} axon_migrator/main.c)
+ADD_EXECUTABLE(axon_test ${TEST_SOURCE_FILES} test/test.c)
 
-ADD_LIBRARY(koroutils shared/utils.c)
-ADD_LIBRARY(koroconfig shared/utils.c shared/config.c)
+ADD_LIBRARY(axonutils shared/utils.c)
+ADD_LIBRARY(axonconfig shared/utils.c shared/config.c)
 
 SET(
     LIBS
@@ -73,40 +76,40 @@ SET(
     ${CMAKE_THREAD_LIBS_INIT}
     ${PostgreSQL_LIBRARIES}
     ${LIBYAML_LIBRARIES}
-    koroconfig
-    koroutils
+    axonconfig
+    axonutils
 )
 
 if (CMAKE_C_COMPILER MATCHES "gcc")
   INCLUDE(CodeCoverage)
-  SETUP_TARGET_FOR_COVERAGE(koro_coverage koro_test coverage)
+  SETUP_TARGET_FOR_COVERAGE(axon_coverage axon_test coverage)
 endif ()
 
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 TARGET_LINK_LIBRARIES(
-    koroutils
+    axonutils
     ${LIBYAML_LIBRARIES}
 )
 
 TARGET_LINK_LIBRARIES(
-    koroconfig
-    koroutils
+    axonconfig
+    axonutils
     ${LIBYAML_LIBRARIES}
 )
 
 TARGET_LINK_LIBRARIES(
-    koro
+    axon
     ${LIBS}
 )
 
 TARGET_LINK_LIBRARIES(
-    koro-migrator
+    axon-migrator
     ${LIBS}
 )
 
 TARGET_LINK_LIBRARIES(
-    koro_test
+    axon_test
     ${CHECK_LIBRARIES}
     ${LIBS} -ldl gcov
 )

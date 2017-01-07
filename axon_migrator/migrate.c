@@ -1,7 +1,7 @@
-#include "koro/db/migrate.h"
+#include "axon/db/migrate.h"
 
-static void koro_markPerformed(KoroMigration **migrations) {
-  KoroMigration **ptr = migrations;
+static void axon_markPerformed(AxonMigration **migrations) {
+  AxonMigration **ptr = migrations;
   FILE *save = fopen("./.migrations", "r");
   if (save == NULL) return;
   char *buffer = NULL;
@@ -31,7 +31,7 @@ static void koro_markPerformed(KoroMigration **migrations) {
       default: {
         if (buffer) {
           int val = atoi(buffer);
-          KoroMigration **coll = ptr;
+          AxonMigration **coll = ptr;
           while (coll && *coll) {
             if ((*coll)->timestamp == val) {
               (*coll)->perform = 0;
@@ -49,15 +49,15 @@ static void koro_markPerformed(KoroMigration **migrations) {
   fclose(save);
 }
 
-static void swap(KoroMigration **x, KoroMigration **y) {
-  KoroMigration *temp = *x;
+static void swap(AxonMigration **x, AxonMigration **y) {
+  AxonMigration *temp = *x;
   *x = *y;
   *y = temp;
   return;
 }
 
-static __attribute__((__malloc__)) KoroMigration *
-median3(KoroMigration **a, size_t left, size_t right) {
+static __attribute__((__malloc__)) AxonMigration *
+median3(AxonMigration **a, size_t left, size_t right) {
   size_t center = (left + right) / 2;
   if (a[center]->timestamp < a[left]->timestamp)
     swap(&a[left], &a[center]);
@@ -69,9 +69,9 @@ median3(KoroMigration **a, size_t left, size_t right) {
   return a[right - 1];
 }
 
-static int quicksort(KoroMigration **a, size_t left, size_t right) {
+static int quicksort(AxonMigration **a, size_t left, size_t right) {
   if (left < right) {
-    KoroMigration *pivot = median3(a, left, right);
+    AxonMigration *pivot = median3(a, left, right);
     if (left == right - 1)
       return KORO_SUCCESS;
     size_t i = left;
@@ -92,7 +92,7 @@ static int quicksort(KoroMigration **a, size_t left, size_t right) {
   return KORO_SUCCESS;
 }
 
-static int koro_fetchTimestamp(char *buf) {
+static int axon_fetchTimestamp(char *buf) {
   buf += strlen("./db/migrate/");
   char *num = calloc(sizeof(char), strlen(buf) + 1);
   char *ptr = num;
@@ -122,7 +122,7 @@ static int koro_fetchTimestamp(char *buf) {
   return i;
 }
 
-static int kore_loadMigrationFiles(KoroMigratorContext *context) {
+static int kore_loadMigrationFiles(AxonMigratorContext *context) {
   const char *path = "./db/migrate";
   DIR *d = opendir(path);
   size_t pathLen = strlen(path);
@@ -152,15 +152,15 @@ static int kore_loadMigrationFiles(KoroMigratorContext *context) {
     snprintf(buf, len, "%s/%s", path, p->d_name);
 
     if (!stat(buf, &statBuf) && S_ISREG(statBuf.st_mode) && strstr(p->d_name, ".sql") != NULL) {
-      KoroMigration *migration = calloc(sizeof(KoroMigration), 1);
+      AxonMigration *migration = calloc(sizeof(AxonMigration), 1);
       migration->path = buf;
       migration->perform = 1;
-      migration->timestamp = koro_fetchTimestamp(buf);
+      migration->timestamp = axon_fetchTimestamp(buf);
 
       context->len += 1;
       context->migrations = context->migrations ?
-                            realloc(context->migrations, sizeof(KoroMigration *) * (context->len + 1)) :
-                            calloc(sizeof(KoroMigration *), context->len + 1);
+                            realloc(context->migrations, sizeof(AxonMigration *) * (context->len + 1)) :
+                            calloc(sizeof(AxonMigration *), context->len + 1);
       context->migrations[context->len - 1] = migration;
       context->migrations[context->len] = 0;
       p = readdir(d);
@@ -177,15 +177,15 @@ static int kore_loadMigrationFiles(KoroMigratorContext *context) {
   return KORO_SUCCESS;
 }
 
-KoroMigratorContext *koro_loadMigrations(void) {
-  KoroMigratorContext *context = calloc(sizeof(KoroMigratorContext), 1);
+AxonMigratorContext *axon_loadMigrations(void) {
+  AxonMigratorContext *context = calloc(sizeof(AxonMigratorContext), 1);
   kore_loadMigrationFiles(context);
-  koro_markPerformed(context->migrations);
+  axon_markPerformed(context->migrations);
   return context;
 }
 
-void koro_freeMigrations(KoroMigratorContext *migratorContext, const char writeToSave) {
-  KoroMigration **migrations = migratorContext->migrations;
+void axon_freeMigrations(AxonMigratorContext *migratorContext, const char writeToSave) {
+  AxonMigration **migrations = migratorContext->migrations;
   while (migrations && *migrations) {
     if (writeToSave && (*migrations)->perform) {
       FILE *save = fopen("./.migrations", "a+");
@@ -202,7 +202,7 @@ void koro_freeMigrations(KoroMigratorContext *migratorContext, const char writeT
   free(migratorContext);
 }
 
-char koro_isMigrate(const char *arg) {
+char axon_isMigrate(const char *arg) {
   return strcmp(arg, "migrate") == 0;
 }
 
@@ -217,22 +217,22 @@ static char *kore_loadSQL(char *path) {
   return buffer;
 }
 
-int koro_migrate() {
-  char *connInfo = koro_getConnectionInfo();
+int axon_migrate() {
+  char *connInfo = axon_getConnectionInfo();
   if (connInfo == NULL)
     return KORO_CONFIG_MISSING;
 
-  KoroMigratorContext *migratorContext = koro_loadMigrations();
-  KoroMigration **migrations = NULL;
+  AxonMigratorContext *migratorContext = axon_loadMigrations();
+  AxonMigration **migrations = NULL;
   int result;
-  KoroExecContext context;
+  AxonExecContext context;
 
   migrations = migratorContext->migrations;
-  context = koro_getContext("BEGIN", connInfo, KORO_ONLY_QUERY | KORO_KEEP_CONNECTION);
-  result = koro_psqlExecute(&context);
+  context = axon_getContext("BEGIN", connInfo, KORO_ONLY_QUERY | KORO_KEEP_CONNECTION);
+  result = axon_psqlExecute(&context);
 
   while (result == KORO_SUCCESS && migrations && *migrations) {
-    KoroMigration *migration = *migrations;
+    AxonMigration *migration = *migrations;
     if (!migration->perform) {
       migrations += 1;
       continue;
@@ -244,7 +244,7 @@ int koro_migrate() {
     }
 
     context.sql = sql;
-    result = koro_psqlExecute(&context);
+    result = axon_psqlExecute(&context);
     if (result != KORO_SUCCESS) {
       fprintf(stderr, "\n");
       fprintf(stderr, "%-90s %s[FAILED]%s\n", migration->path, KORO_COLOR_RED, KORO_COLOR_NRM);
@@ -261,14 +261,14 @@ int koro_migrate() {
   if (result == KORO_SUCCESS) {
     context.sql = "END";
     context.type = KORO_ONLY_QUERY;
-    koro_psqlExecute(&context);
+    axon_psqlExecute(&context);
   } else {
     context.sql = "ROLLBACK";
     context.type = KORO_ONLY_QUERY;
-    koro_psqlExecute(&context);
+    axon_psqlExecute(&context);
   }
 
-  koro_freeMigrations(migratorContext, result == KORO_SUCCESS);
+  axon_freeMigrations(migratorContext, result == KORO_SUCCESS);
   free(connInfo);
 
   return result;

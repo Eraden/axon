@@ -12,4 +12,4 @@ cd build
 export PATH=$PATH:$PWD
 cmake -DCMAKE_C_COMPILER=$(which gcc) -DCMAKE_BUILD_TYPE=Debug ..
 make -j 4
-make koro_coverage
+make axon_coverage

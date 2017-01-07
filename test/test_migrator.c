@@ -9,7 +9,7 @@ START_TEST(test_migratorMigrate)
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples DROP COLUMN login;", NOW() + 3);
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples ADD COLUMN created_at timestamp;", NOW() + 4);
 
-  ck_assert_int_eq(koro_migrate(), KORO_SUCCESS);
+  ck_assert_int_eq(axon_migrate(), KORO_SUCCESS);
 END_TEST
 
 START_TEST(test_migratorCreateDatabase)
@@ -18,7 +18,7 @@ START_TEST(test_migratorCreateDatabase)
   int result;
   ck_dropTestDb();
   ck_redirectStderr(
-      result = koro_createDatabase();
+      result = axon_createDatabase();
   )
   ck_assert_int_eq(result, KORO_SUCCESS);
 END_TEST
@@ -30,7 +30,7 @@ START_TEST(test_migratorCreateDatabaseWithoutConfig)
   ck_unlink("./conf/database.yml");
   int result;
   ck_redirectStderr(
-      result = koro_createDatabase();
+      result = axon_createDatabase();
   )
   ck_assert_int_eq(result, KORO_CONFIG_MISSING);
 END_TEST
@@ -42,7 +42,7 @@ START_TEST(test_migratorDropDatabaseWithoutConfig)
   ck_unlink("./conf/database.yml");
   int result;
   ck_redirectStderr(
-      result = koro_dropDatabase();
+      result = axon_dropDatabase();
   )
   ck_assert_int_eq(result, KORO_CONFIG_MISSING);
 END_TEST
@@ -53,7 +53,7 @@ START_TEST(test_getContextNoConfig)
   putenv("KORE_ENV=invalid-env");
   ck_unlink("./conf/database.yml");
   char *info = NULL;
-  ck_redirectStderr(koro_getConnectionInfo();)
+  ck_redirectStderr(axon_getConnectionInfo();)
   ck_assert_ptr_eq(info, NULL);
   putenv("KORE_ENV=test");
   ck_path_contains("./log/error.log", "No database config file for current env!");
@@ -64,7 +64,7 @@ START_TEST(test_getContextNoDbName)
   IN_CLEAR_STATE(/* */);
   ck_overrideFile("./conf/database.yml", "test:\n  host: localhost\n");
   char *info = NULL;
-  ck_redirectStderr(koro_getConnectionInfo();)
+  ck_redirectStderr(axon_getConnectionInfo();)
   ck_assert_ptr_eq(info, NULL);
   ck_unlink("./conf/database.yml");
   IN_CLEAR_STATE(/* */);
@@ -73,35 +73,35 @@ END_TEST
 START_TEST(test_psqlExecNoConnInfo)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
-  KoroExecContext context = koro_getContext("", NULL, KORO_ONLY_QUERY);
-  int result = koro_psqlExecute(&context);
+  AxonExecContext context = axon_getContext("", NULL, KORO_ONLY_QUERY);
+  int result = axon_psqlExecute(&context);
   ck_assert_int_eq(result, KORO_CONFIG_MISSING);
 END_TEST
 
 START_TEST(test_psqlExecInvalidConnInfo)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
-  KoroExecContext context = koro_getContext("", "dbname = 1234567890asdfghjkl", KORO_ONLY_QUERY);
+  AxonExecContext context = axon_getContext("", "dbname = 1234567890asdfghjkl", KORO_ONLY_QUERY);
   int result;
-  ck_redirectStderr(result = koro_psqlExecute(&context);)
+  ck_redirectStderr(result = axon_psqlExecute(&context);)
   ck_assert_int_eq(result, KORO_FAILURE);
 END_TEST
 
 START_TEST(test_queryInTransaction)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
-  KoroExecContext context;
-  context = koro_getContext(
+  AxonExecContext context;
+  context = axon_getContext(
       "CREATE TABLE accounts(id serial, login text)",
       "dbname = kore_test",
       KORO_ONLY_QUERY
   );
-  koro_psqlExecute(&context);
+  axon_psqlExecute(&context);
   context.sql = "INSERT INTO accounts(login) VALUES ('hello'), ('world')";
-  koro_psqlExecute(&context);
+  axon_psqlExecute(&context);
   context.sql = "SELECT id FROM accounts";
   context.type = KORO_ONLY_QUERY | KORO_TRANSACTION_QUERY | KORO_USE_CURSOR_QUERY;
-  int result = koro_psqlExecute(&context);
+  int result = axon_psqlExecute(&context);
   ck_assert_int_eq(result, KORO_SUCCESS);
 END_TEST
 
@@ -123,11 +123,16 @@ START_TEST(test_markedPerformed)
   }
   fclose(f);
 
-  KoroMigratorContext *context = koro_loadMigrations();
+  AxonMigratorContext *context = axon_loadMigrations();
   for (unsigned int i = 0; i < 7; i++) {
     ck_assert(context->migrations[i]->perform == (i >= 5));
   }
-  koro_freeMigrations(context, 0);
+  axon_freeMigrations(context, 0);
+END_TEST
+
+START_TEST(test_isSetup)
+  ck_assert_int_eq(axon_isSetup("setup"), 1);
+  ck_assert_int_eq(axon_isSetup("set"), 0);
 END_TEST
 
 void test_migrator(Suite *s) {
@@ -142,5 +147,6 @@ void test_migrator(Suite *s) {
   tcase_add_test(testCaseDatabase, test_psqlExecInvalidConnInfo);
   tcase_add_test(testCaseDatabase, test_queryInTransaction);
   tcase_add_test(testCaseDatabase, test_markedPerformed);
+  tcase_add_test(testCaseDatabase, test_isSetup);
   suite_add_tcase(s, testCaseDatabase);
 }

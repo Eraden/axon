@@ -27,7 +27,7 @@ int _ck_io_check(const char *path);
 
 int _ck_unlink(const char *path);
 
-int _ck_io_contains(const char *path, const char *content);
+int __attribute__((__used__)) _ck_io_contains(const char *path, const char *content);
 
 char *_ck_findFile(const char *dir, const char *pattern);
 

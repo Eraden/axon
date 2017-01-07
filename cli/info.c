@@ -1,6 +1,6 @@
-#include "koro/info.h"
+#include "axon/info.h"
 
-char koro_isInfo(const char *str) {
+char axon_isInfo(const char *str) {
   if (strcmp(str, "info") == 0) return 1;
   if (strcmp(str, "--info") == 0) return 1;
   if (strcmp(str, "-i") == 0) return 1;
@@ -10,9 +10,9 @@ char koro_isInfo(const char *str) {
   return 0;
 }
 
-void koro_info() {
+void axon_info() {
   printf(
-      "koro %i.%i.%i\n"
+      "axon %i.%i.%i\n"
           "  db - execute database operations\n"
           "db:\n"
           "  kore db init\n"

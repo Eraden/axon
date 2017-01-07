@@ -12,7 +12,7 @@
 #include <dirent.h>
 #include <ctype.h>
 
-#include "koro/config.h"
+#include "axon/config.h"
 
 #define KORO_COLOR_NRM  "\x1B[0m"
 #define KORO_COLOR_RED  "\x1B[31m"
@@ -25,20 +25,24 @@
 
 #define __WEXITSTATUS(status) (((status) & 0xff00) >> 8)
 
-typedef struct sKoroGraph {
+typedef struct sAxonGraph {
   char *root;
-  struct sKoroGraph *leafs;
+  struct sAxonGraph *leafs;
   size_t len;
-} KoroGraph;
+} AxonGraph;
 
-void koro_createInfo(KoroGraph *koroGraph);
+void axon_createInfo(AxonGraph *axonGraph);
 
-void koro_drawGraph(KoroGraph *koroGraph, size_t indent);
+void axon_drawGraph(AxonGraph *axonGraph, size_t indent);
 
-char koro_checkIO(const char *path);
+char axon_checkIO(const char *path);
 
-void koro_ensureStructure(void);
+void axon_ensureStructure(void);
 
-char koro_mkdir(const char *path);
+char axon_touch(const char *path);
 
-int koro_runCommand(const char *cmd);
+char axon_mkdir(const char *path);
+
+int axon_runCommand(const char *cmd);
+
+char *axon_getDatabaseName(void);
