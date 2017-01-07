@@ -1,9 +1,9 @@
 #include "axon/utils.h"
 
-static const u_int32_t KORO_LAST_LEAF = L'└';
-static const u_int32_t KORO_INTERSECTION_LEAF = L'├';
-static const u_int32_t KORO_PATH_TO_LEAF = L'─';
-static const size_t KORO_PATH_LEN = 3;
+static const u_int32_t AXON_LAST_LEAF = L'└';
+static const u_int32_t AXON_INTERSECTION_LEAF = L'├';
+static const u_int32_t AXON_PATH_TO_LEAF = L'─';
+static const size_t AXON_PATH_LEN = 3;
 
 char axon_checkIO(const char *path) {
   FILE *f = fopen(path, "r");
@@ -16,8 +16,11 @@ char axon_checkIO(const char *path) {
 
 char axon_mkdir(const char *path) {
   if (axon_checkIO(path) == 0 && mkdir(path, S_IRWXU | S_IRWXG) != 0) {
+    /* LCOV_EXCL_START */
+    /* Only if directory couldn't be created */
     fprintf(stderr, "No '%s' directory in path!\n", path);
     return 0;
+    /* LCOV_EXCL_STOP */
   }
   return 1;
 }
@@ -74,7 +77,7 @@ int axon_runCommand(const char *command) {
   free(flavor);
   char *runCmd = calloc(sizeof(char), strlen(command) + 1);
   strcpy(runCmd, command);
-  runCmd = axon_cpyEnv(runCmd, "KORO_ENV");
+  runCmd = axon_cpyEnv(runCmd, "AXON_ENV");
   runCmd = axon_cpyEnv(runCmd, "PATH");
   FILE *cmd = popen(runCmd, "r");
   free(runCmd);
@@ -101,10 +104,10 @@ void axon_drawGraph(AxonGraph *axonGraph, size_t indent) {
     for (int indentIndex = 0; indentIndex < printIndent; indentIndex++) {
       fprintf(stdout, " ");
     }
-    if (isIntersection) fprintf(stdout, "%lc", KORO_INTERSECTION_LEAF);
-    else fprintf(stdout, "%lc", KORO_LAST_LEAF);
-    for (size_t l = 0; l < 2; l++) fprintf(stdout, "%lc", KORO_PATH_TO_LEAF);
-    axon_drawGraph(&axonGraph->leafs[i], printIndent + KORO_PATH_LEN);
+    if (isIntersection) fprintf(stdout, "%lc", AXON_INTERSECTION_LEAF);
+    else fprintf(stdout, "%lc", AXON_LAST_LEAF);
+    for (size_t l = 0; l < 2; l++) fprintf(stdout, "%lc", AXON_PATH_TO_LEAF);
+    axon_drawGraph(&axonGraph->leafs[i], printIndent + AXON_PATH_LEN);
   }
 }
 

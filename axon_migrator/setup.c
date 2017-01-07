@@ -5,5 +5,5 @@ char axon_isSetup(char *str) {
 }
 
 int axon_setup() {
-  return KORO_FAILURE;
+  return AXON_FAILURE;
 }

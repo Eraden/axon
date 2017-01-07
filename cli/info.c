@@ -19,6 +19,6 @@ void axon_info() {
           "  kore db new table TABLE_NAME COLUMN COLUMN:TYPE\n"
           "  kore db change TABLE_NAME add COLUMN:TYPE\n"
           "  kore db change TABLE_NAME drop COLUMN\n",
-      KORO_MAJOR_VERSION, KORO_MINOR_VERSION, KORO_PATCH_VERSION
+      AXON_MAJOR_VERSION, AXON_MINOR_VERSION, AXON_PATCH_VERSION
   );
 }

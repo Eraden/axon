@@ -12,7 +12,7 @@ static char axon_isDbInitExists(void) {
 static char axon_dbInit() {
   if (axon_checkIO("./src") == 0) {
     fprintf(stderr, "No src directory in path!\n");
-    return KORO_FAILURE;
+    return AXON_FAILURE;
   }
 
   axon_ensureStructure();
@@ -39,7 +39,7 @@ static char axon_dbInit() {
   AxonGraph axonGraph = {.root="src", .len=1, .leafs=srcChildren};
   axon_createInfo(&axonGraph);
 
-  return KORO_SUCCESS;
+  return AXON_SUCCESS;
 }
 
 static char axon_dbNew(int argc, char **argv) {
@@ -49,7 +49,7 @@ static char axon_dbNew(int argc, char **argv) {
   if (strcmp(type, "table") == 0) {
     return axon_dbNewTable(argc, argv);
   } else {
-    return KORO_FAILURE;
+    return AXON_FAILURE;
   }
 }
 
@@ -63,7 +63,7 @@ char axon_dbExec(int argc, char **argv) {
 
   if (strcmp(op, "init") != 0 && axon_isDbInitExists() == 0) {
     fprintf(stderr, "DB init does not exists! Type `axon db init` to create it\n");
-    return KORO_FAILURE;
+    return AXON_FAILURE;
   } else if (strcmp(op, "init") == 0) {
     return axon_dbInit();
   } else if (strcmp(op, "new") == 0) {
@@ -77,6 +77,6 @@ char axon_dbExec(int argc, char **argv) {
   } else if (strcmp(op, "drop") == 0) {
     return (char) axon_runCommand("axon-migrator drop");
   } else {
-    return KORO_UNKNOWN_COMMAND;
+    return AXON_UNKNOWN_COMMAND;
   }
 }

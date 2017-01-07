@@ -5,8 +5,10 @@ void axon_createConfig(void) {
   if (axon_configExists()) return;
   FILE *config = fopen("./conf/database.yml", "w+");
   if (config == NULL) {
+    /* LCOV_EXCL_START */
     fprintf(stderr, "Error: %s\n", strerror(errno));
     return;
+    /* LCOV_EXCL_STOP */
   }
   fprintf(
       config,
@@ -55,13 +57,17 @@ char axon_orderExists(void) {
 
 static void axon_fetchConfig(AxonEnvironmentConfig *c, char *name, char *value) {
   if (c == NULL) {
+    /* LCOV_EXCL_START */
     if (name) free(name);
     if (value) free(value);
     return;
+    /* LCOV_EXCL_STOP */
   }
   if (name == NULL) {
+    /* LCOV_EXCL_START */
     if (value) free(value);
     return;
+    /* LCOV_EXCL_STOP */
   }
   if (strcmp(name, "name") == 0) {
     c->name = value;
@@ -71,7 +77,7 @@ static void axon_fetchConfig(AxonEnvironmentConfig *c, char *name, char *value) 
     c->port = value ? atoi(value) : 5432;
     free(value);
   } else {
-    if (value) free(value);
+    if (value) free(value); /* LCOV_EXCL_LINE */
   }
   free(name);
 }
@@ -251,8 +257,10 @@ char *axon_getFlavor(void) {
 }
 
 AxonOrder __attribute__((__malloc__))*axon_readOrder(void) {
-  if (!axon_orderExists())
+  if (!axon_orderExists()) {
+    fprintf(stderr, "db/order.yml does not exists!\n");
     return NULL;
+  }
 
   AxonOrder *order = calloc(sizeof(AxonOrder), 1);
   return order;

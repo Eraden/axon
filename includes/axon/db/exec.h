@@ -5,14 +5,14 @@
 #include "axon/utils.h"
 #include "axon/codes.h"
 
-#define KORO_EXECUTE_SQL_BUFFER_SIZE 1024
-#define KORO_CONN_INFO_SIZE 128
+#define AXON_EXECUTE_SQL_BUFFER_SIZE 1024
+#define AXON_CONN_INFO_SIZE 128
 
 typedef enum eAxonExecType {
-  KORO_ONLY_QUERY = 0,
-  KORO_TRANSACTION_QUERY = 1 << 0,
-  KORO_USE_CURSOR_QUERY = 1 << 1,
-  KORO_KEEP_CONNECTION = 1 << 2
+  AXON_ONLY_QUERY = 0,
+  AXON_TRANSACTION_QUERY = 1 << 0,
+  AXON_USE_CURSOR_QUERY = 1 << 1,
+  AXON_KEEP_CONNECTION = 1 << 2
 } AxonExecType;
 
 typedef struct sAxonExecContext {

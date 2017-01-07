@@ -9,7 +9,7 @@ START_TEST(test_migratorMigrate)
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples DROP COLUMN login;", NOW() + 3);
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples ADD COLUMN created_at timestamp;", NOW() + 4);
 
-  ck_assert_int_eq(axon_migrate(), KORO_SUCCESS);
+  ck_assert_int_eq(axon_migrate(), AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_migratorCreateDatabase)
@@ -20,7 +20,7 @@ START_TEST(test_migratorCreateDatabase)
   ck_redirectStderr(
       result = axon_createDatabase();
   )
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_migratorCreateDatabaseWithoutConfig)
@@ -32,7 +32,7 @@ START_TEST(test_migratorCreateDatabaseWithoutConfig)
   ck_redirectStderr(
       result = axon_createDatabase();
   )
-  ck_assert_int_eq(result, KORO_CONFIG_MISSING);
+  ck_assert_int_eq(result, AXON_CONFIG_MISSING);
 END_TEST
 
 START_TEST(test_migratorDropDatabaseWithoutConfig)
@@ -44,7 +44,7 @@ START_TEST(test_migratorDropDatabaseWithoutConfig)
   ck_redirectStderr(
       result = axon_dropDatabase();
   )
-  ck_assert_int_eq(result, KORO_CONFIG_MISSING);
+  ck_assert_int_eq(result, AXON_CONFIG_MISSING);
 END_TEST
 
 START_TEST(test_getContextNoConfig)
@@ -73,18 +73,18 @@ END_TEST
 START_TEST(test_psqlExecNoConnInfo)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
-  AxonExecContext context = axon_getContext("", NULL, KORO_ONLY_QUERY);
+  AxonExecContext context = axon_getContext("", NULL, AXON_ONLY_QUERY);
   int result = axon_psqlExecute(&context);
-  ck_assert_int_eq(result, KORO_CONFIG_MISSING);
+  ck_assert_int_eq(result, AXON_CONFIG_MISSING);
 END_TEST
 
 START_TEST(test_psqlExecInvalidConnInfo)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
-  AxonExecContext context = axon_getContext("", "dbname = 1234567890asdfghjkl", KORO_ONLY_QUERY);
+  AxonExecContext context = axon_getContext("", "dbname = 1234567890asdfghjkl", AXON_ONLY_QUERY);
   int result;
   ck_redirectStderr(result = axon_psqlExecute(&context);)
-  ck_assert_int_eq(result, KORO_FAILURE);
+  ck_assert_int_eq(result, AXON_FAILURE);
 END_TEST
 
 START_TEST(test_queryInTransaction)
@@ -94,15 +94,52 @@ START_TEST(test_queryInTransaction)
   context = axon_getContext(
       "CREATE TABLE accounts(id serial, login text)",
       "dbname = kore_test",
-      KORO_ONLY_QUERY
+      AXON_ONLY_QUERY
   );
   axon_psqlExecute(&context);
   context.sql = "INSERT INTO accounts(login) VALUES ('hello'), ('world')";
   axon_psqlExecute(&context);
   context.sql = "SELECT id FROM accounts";
-  context.type = KORO_ONLY_QUERY | KORO_TRANSACTION_QUERY | KORO_USE_CURSOR_QUERY;
+  context.type = AXON_ONLY_QUERY | AXON_TRANSACTION_QUERY | AXON_USE_CURSOR_QUERY;
   int result = axon_psqlExecute(&context);
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
+END_TEST
+
+START_TEST(test_migrateWithPerformed)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  const long long now = NOW();
+  ck_make_dummy_sql("first", "CREATE TABLE first(id serial)", now + 1);
+  ck_make_dummy_sql("second", "CREATE TABLE second(id serial)", now + 2);
+  ck_make_dummy_sql("third", "CREATE TABLE third(id serial)", now + 3);
+  ck_make_dummy_sql("fourth", "CREATE TABLE fourth(id serial)", now + 4);
+  char buffer[1024];
+  memset(buffer, 0, 1024);
+  sprintf(buffer, "%lli\n%lli\n", now + 1, now + 2);
+  FILE *f = fopen("./.migrations", "w+");
+  ck_assert_ptr_ne(f, NULL);
+  fprintf(f, "%s", buffer);
+  fclose(f);
+  int result = axon_migrate();
+  ck_assert_int_eq(result, AXON_SUCCESS);
+END_TEST
+
+START_TEST(test_invalidMigrate)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  const long long now = NOW();
+  int result;
+  ck_make_dummy_sql("first", "CREATE TABLE first(id serial)", now + 1);
+  ck_make_dummy_sql("second", "CREATE TABLE second(id serial)", now + 2);
+  result = axon_migrate();
+  ck_assert_int_eq(result, AXON_SUCCESS);
+
+  ck_unlink("./.migrations");
+  ck_make_dummy_sql("third", "CREATE TABLE third(id serial)", now + 3);
+  ck_make_dummy_sql("fourth", "CREATE TABLE fourth(id serial)", now + 4);
+  ck_redirectStderr(result = axon_migrate();)
+  ck_assert_int_eq(result, AXON_FAILURE);
+  ck_path_contains("./log/error.log", "aborting (all changes will be reversed)...");
 END_TEST
 
 START_TEST(test_markedPerformed)
@@ -116,6 +153,7 @@ START_TEST(test_markedPerformed)
   ck_make_dummy_sql("five", "SELECT 1", now + 5);
   ck_make_dummy_sql("six", "SELECT 1", now + 6);
   ck_make_dummy_sql("seven", "SELECT 1", now + 7);
+  axon_touch("./db/migrate/hello_world");
   ck_unlink("./.migrations");
   FILE *f = fopen("./.migrations", "a+");
   for (short int i = 0; i < 5; i++) {
@@ -124,23 +162,47 @@ START_TEST(test_markedPerformed)
   fclose(f);
 
   AxonMigratorContext *context = axon_loadMigrations();
+  ck_assert_int_eq(context->len, 7);
   for (unsigned int i = 0; i < 7; i++) {
     ck_assert(context->migrations[i]->perform == (i >= 5));
   }
   axon_freeMigrations(context, 0);
 END_TEST
 
+START_TEST(test_migrateWithoutDirectory)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  ck_unlink("./db/migrate");
+  AxonMigratorContext *context = axon_loadMigrations();
+  ck_assert_ptr_ne(context, NULL);
+  ck_assert_int_eq(context->len, 0);
+  ck_assert_ptr_eq(context->migrations, NULL);
+  axon_freeMigrations(context, 0);
+END_TEST
+
 START_TEST(test_isSetup)
+  GO_TO_DUMMY
   ck_assert_int_eq(axon_isSetup("setup"), 1);
   ck_assert_int_eq(axon_isSetup("set"), 0);
 END_TEST
 
+START_TEST(test_axonSetup)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  axon_createConfig();
+  int result = axon_setup();
+  ck_assert_int_eq(result, AXON_FAILURE);
+END_TEST
+
 void test_migrator(Suite *s) {
   TCase *testCaseDatabase = tcase_create("Migrator");
+  tcase_add_test(testCaseDatabase, test_migrateWithPerformed);
+  tcase_add_test(testCaseDatabase, test_migrateWithoutDirectory);
   tcase_add_test(testCaseDatabase, test_migratorCreateDatabase);
   tcase_add_test(testCaseDatabase, test_migratorCreateDatabaseWithoutConfig);
   tcase_add_test(testCaseDatabase, test_migratorDropDatabaseWithoutConfig);
   tcase_add_test(testCaseDatabase, test_migratorMigrate);
+  tcase_add_test(testCaseDatabase, test_invalidMigrate);
   tcase_add_test(testCaseDatabase, test_getContextNoConfig);
   tcase_add_test(testCaseDatabase, test_getContextNoDbName);
   tcase_add_test(testCaseDatabase, test_psqlExecNoConnInfo);
@@ -148,5 +210,6 @@ void test_migrator(Suite *s) {
   tcase_add_test(testCaseDatabase, test_queryInTransaction);
   tcase_add_test(testCaseDatabase, test_markedPerformed);
   tcase_add_test(testCaseDatabase, test_isSetup);
+  tcase_add_test(testCaseDatabase, test_axonSetup);
   suite_add_tcase(s, testCaseDatabase);
 }

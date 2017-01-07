@@ -1,5 +1,4 @@
 #include "./ck_io.h"
-#include "axon/db/exec.h"
 
 static int ck_removeDirectory(const char *path);
 
@@ -12,14 +11,14 @@ int stdoutReplaced;
 
 void ck_dropTestDb() {
   ck_redirectStderr(
-      AxonExecContext context = axon_getContext("DROP DATABASE kore_test", "dbname = postgres", KORO_ONLY_QUERY);
+      AxonExecContext context = axon_getContext("DROP DATABASE kore_test", "dbname = postgres", AXON_ONLY_QUERY);
       axon_psqlExecute(&context);
   );
 }
 
 void ck_createTestDb() {
   ck_redirectStderr(
-      AxonExecContext context = axon_getContext("CREATE DATABASE kore_test", "dbname = postgres", KORO_ONLY_QUERY);
+      AxonExecContext context = axon_getContext("CREATE DATABASE kore_test", "dbname = postgres", AXON_ONLY_QUERY);
       axon_psqlExecute(&context);
   );
 }

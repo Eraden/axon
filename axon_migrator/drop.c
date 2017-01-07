@@ -6,7 +6,7 @@ char axon_isDatabaseDrop(char *str) {
 
 int axon_dropDatabase() {
   if (axon_configExists() == 0)
-    return KORO_CONFIG_MISSING;
+    return AXON_CONFIG_MISSING;
 
   char *name = axon_getDatabaseName();
 
@@ -14,7 +14,7 @@ int axon_dropDatabase() {
   strcat(buffer, "DROP DATABASE ");
   strcat(buffer, name);
 
-  AxonExecContext context = axon_getContext(buffer, "dbname = postgres", KORO_ONLY_QUERY);
+  AxonExecContext context = axon_getContext(buffer, "dbname = postgres", AXON_ONLY_QUERY);
 
   int result = axon_psqlExecute(&context);
   free(name);

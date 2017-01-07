@@ -9,9 +9,9 @@ static void axon_freeColumn(AxonColumnData *column) {
 }
 
 static FILE *axon_createMigration(char **fileName, const char *pattern, const char *tableName) {
-  char path[KORO_MIGRATION_PATH_LEN];
-  memset(path, 0, KORO_MIGRATION_PATH_LEN);
-  memset(*fileName, 0, KORO_MIGRATION_FILE_NAME_LEN);
+  char path[AXON_MIGRATION_PATH_LEN];
+  memset(path, 0, AXON_MIGRATION_PATH_LEN);
+  memset(*fileName, 0, AXON_MIGRATION_FILE_NAME_LEN);
   sprintf(*fileName, pattern, (unsigned long long) time(NULL), tableName);
   sprintf(path, "./db/migrate/%s", *fileName);
   FILE *f = fopen(path, "w+");
@@ -92,10 +92,10 @@ char axon_dbNewTable(int argc, char **argv) {
   }
   if (table.columns == NULL) axon_appendColumn(&table, axon_getColumn("id"));
 
-  char *fileName = calloc(sizeof(char), KORO_MIGRATION_FILE_NAME_LEN);
+  char *fileName = calloc(sizeof(char), AXON_MIGRATION_FILE_NAME_LEN);
   FILE *f = axon_createMigration(&fileName, "%llu_create_table_%s.sql", name);
   if (f == NULL)
-    return KORO_FAILURE;
+    return AXON_FAILURE; /* LCOV_EXCL_LINE */
 
   fprintf(f, "CREATE TABLE %s (\n", name);
   for (size_t i = 0; i < table.columnsCount; i++) {
@@ -111,7 +111,7 @@ char axon_dbNewTable(int argc, char **argv) {
   axon_createMigrationInfo(fileName);
   free(fileName);
 
-  return KORO_SUCCESS;
+  return AXON_SUCCESS;
 }
 
 char axon_dbChange(int argc, char **argv) {
@@ -122,23 +122,23 @@ char axon_dbChange(int argc, char **argv) {
   const char *op = argv[4];
   char result;
 
-  char *fileName = calloc(sizeof(char), KORO_MIGRATION_FILE_NAME_LEN);
+  char *fileName = calloc(sizeof(char), AXON_MIGRATION_FILE_NAME_LEN);
   FILE *f = axon_createMigration(&fileName, "%llu_change_table_%s.sql", name);
   if (f == NULL)
-    return KORO_FAILURE;
+    return AXON_FAILURE; /* LCOV_EXCL_LINE */
   AxonColumnData *column = axon_getColumn(argv[5]);
 
   fprintf(f, "ALTER TABLE %s", name);
 
   if (strcmp(op, "add") == 0) {
     fprintf(f, " ADD COLUMN %s %s;\n", column->name, column->type);
-    result = KORO_SUCCESS;
+    result = AXON_SUCCESS;
   } else if (strcmp(op, "drop") == 0) {
     fprintf(f, " DROP COLUMN %s;", column->name);
-    result = KORO_SUCCESS;
+    result = AXON_SUCCESS;
   } else {
     fprintf(stderr, "Unknown change operation '%s'\n", op);
-    result = KORO_FAILURE;
+    result = AXON_FAILURE;
   }
 
   fclose(f);

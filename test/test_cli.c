@@ -9,7 +9,7 @@ START_TEST(test_invalidDirectory)
       result = axon_dbExec(4, args);
   )
 
-  ck_assert_int_eq(result, KORO_FAILURE);
+  ck_assert_int_eq(result, AXON_FAILURE);
   ck_path_contains(errorLogPath, "No src directory in path!");
   GO_TO_DUMMY
 END_TEST
@@ -47,19 +47,19 @@ START_TEST(test_unknownNew)
   ck_redirectStdout(
       result = axon_dbExec(5, args);
   )
-  ck_assert_int_eq(result, KORO_FAILURE);
+  ck_assert_int_eq(result, AXON_FAILURE);
 END_TEST
 
 START_TEST(test_newTable)
   GO_TO_DUMMY
   ck_unlink("./db");
-  char *args[8] = {"inline", "db", "new", "table", "accounts", "id", "name", "age:int"};
+  char *args[9] = {"inline", "db", "new", "table", "accounts", "id", "name", "age:int", "timestamps"};
   int result;
 
   ck_redirectStdout(
-      result = axon_dbExec(8, args);
+      result = axon_dbExec(9, args);
   )
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
   ck_assert_file_in("./db/migrate", "create_table_accounts.sql");
@@ -76,7 +76,7 @@ START_TEST(test_dbChange)
   ck_redirectStdout(
       result = axon_dbExec(6, dropArgs);
   )
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
@@ -91,7 +91,7 @@ START_TEST(test_dbChange)
   ck_redirectStdout(
       result = axon_dbExec(6, addArgs);
   )
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
@@ -104,7 +104,7 @@ START_TEST(test_dbChange)
   char *removeArgs[6] = {"inline", "db", "change", "posts", "remove", "age:int"};
 
   ck_redirectStderr(ck_redirectStdout(result = axon_dbExec(6, removeArgs)))
-  ck_assert_int_eq(result, KORO_FAILURE);
+  ck_assert_int_eq(result, AXON_FAILURE);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
   ck_path_contains("./log/error.log", "Unknown change operation 'remove'");
@@ -139,7 +139,7 @@ START_TEST(test_dbInitExists)
   ck_redirectStderr(
       result = axon_dbExec(5, args);
   )
-  ck_assert_int_eq(result, KORO_FAILURE);
+  ck_assert_int_eq(result, AXON_FAILURE);
   ck_path_contains("./log/error.info", "DB init does not exists! Type `axon db init` to create it");
 END_TEST
 
@@ -158,7 +158,7 @@ START_TEST(test_DBmigrate)
   ck_redirectStdout(
       result = axon_dbExec(3, args);
   )
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_createDB)
@@ -173,7 +173,7 @@ START_TEST(test_createDB)
   ck_redirectStdout(
       result = axon_dbExec(3, args);
   )
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_dropDB)
@@ -189,7 +189,7 @@ START_TEST(test_dropDB)
   ck_redirectStdout(
       result = axon_dbExec(3, args);
   )
-  ck_assert_int_eq(result, KORO_SUCCESS);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_unknownCmd)
@@ -203,7 +203,7 @@ START_TEST(test_unknownCmd)
   ck_redirectStdout(
       result = axon_dbExec(3, args);
   )
-  ck_assert_int_eq(result, KORO_UNKNOWN_COMMAND);
+  ck_assert_int_eq(result, AXON_UNKNOWN_COMMAND);
 END_TEST
 
 void test_cli(Suite *s) {

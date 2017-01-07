@@ -3,8 +3,8 @@
 #include "axon/utils.h"
 #include "axon/codes.h"
 
-#define KORO_MIGRATION_PATH_LEN 2049
-#define KORO_MIGRATION_FILE_NAME_LEN 1025
+#define AXON_MIGRATION_PATH_LEN 2049
+#define AXON_MIGRATION_FILE_NAME_LEN 1025
 
 typedef struct sAxonColumnData {
   char *name;

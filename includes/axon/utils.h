@@ -14,14 +14,14 @@
 
 #include "axon/config.h"
 
-#define KORO_COLOR_NRM  "\x1B[0m"
-#define KORO_COLOR_RED  "\x1B[31m"
-#define KORO_COLOR_GRN  "\x1B[32m"
-#define KORO_COLOR_YEL  "\x1B[33m"
-#define KORO_COLOR_BLU  "\x1B[34m"
-#define KORO_COLOR_MAG  "\x1B[35m"
-#define KORO_COLOR_CYN  "\x1B[36m"
-#define KORO_COLOR_WHT  "\x1B[37m"
+#define AXON_COLOR_NRM  "\x1B[0m"
+#define AXON_COLOR_RED  "\x1B[31m"
+#define AXON_COLOR_GRN  "\x1B[32m"
+#define AXON_COLOR_YEL  "\x1B[33m"
+#define AXON_COLOR_BLU  "\x1B[34m"
+#define AXON_COLOR_MAG  "\x1B[35m"
+#define AXON_COLOR_CYN  "\x1B[36m"
+#define AXON_COLOR_WHT  "\x1B[37m"
 
 #define __WEXITSTATUS(status) (((status) & 0xff00) >> 8)
 
