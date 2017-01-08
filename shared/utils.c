@@ -130,3 +130,23 @@ char *axon_getDatabaseName() {
   axon_freeConfig(config);
   return name;
 }
+
+char *axon_readFile(const char *path) {
+  struct stat sb;
+  int res = 0;
+  char *p = NULL;
+  int fd;
+  fd = open(path, O_RDONLY);
+  if (fd == -1) return NULL;
+  res = fstat(fd, &sb);
+  if (res == -1) return NULL;
+  if (!S_ISREG(sb.st_mode)) return NULL;
+  p = mmap(0, (size_t) sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (p == MAP_FAILED) return NULL;
+  char *content = calloc(sizeof(char), (size_t) sb.st_size + 1);
+  for (size_t i = 0; i < sb.st_size; i++)
+    content[i] = p[i];
+  munmap(p, (size_t) sb.st_size);
+
+  return content;
+}

@@ -80,7 +80,7 @@ static int quicksort(AxonMigration **a, size_t left, size_t right) {
       while (a[++i]->timestamp < pivot->timestamp) {}
       while (pivot->timestamp < a[--j]->timestamp) {}
       if (i < j)
-        swap(&a[i], &a[j]);
+        swap(&a[i], &a[j]);  /* LCOV_EXCL_LINE */
       else
         break;
     }
@@ -122,7 +122,7 @@ static int axon_fetchTimestamp(char *buf) {
   return i;
 }
 
-static int kore_loadMigrationFiles(AxonMigratorContext *context) {
+static int axon_loadMigrationFiles(AxonMigratorContext *context) {
   const char *path = "./db/migrate";
   DIR *d = opendir(path);
   size_t pathLen = strlen(path);
@@ -188,7 +188,7 @@ static int kore_loadMigrationFiles(AxonMigratorContext *context) {
 
 AxonMigratorContext *axon_loadMigrations(void) {
   AxonMigratorContext *context = calloc(sizeof(AxonMigratorContext), 1);
-  if (kore_loadMigrationFiles(context) == AXON_SUCCESS) {
+  if (axon_loadMigrationFiles(context) == AXON_SUCCESS) {
     axon_markPerformed(context->migrations);
   }
   return context;
@@ -216,73 +216,38 @@ char axon_isMigrate(const char *arg) {
   return strcmp(arg, "migrate") == 0;
 }
 
-static char *kore_loadSQL(char *path) {
-  FILE *f = fopen(path, "r");
-  fseek(f, 0, SEEK_END);
-  long len = ftell(f);
-  char *buffer = calloc(sizeof(char), (size_t) (len + 1));
-  rewind(f);
-  fread(buffer, sizeof(char), (size_t) len, f);
-  fclose(f);
-  return buffer;
-}
-
 int axon_migrate() {
   char *connInfo = axon_getConnectionInfo();
   if (connInfo == NULL)
-    return AXON_CONFIG_MISSING;
+    return AXON_CONFIG_MISSING; /* LCOV_EXCL_LINE */
 
   AxonMigratorContext *migratorContext = axon_loadMigrations();
   AxonMigration **migrations = NULL;
   int result;
-  AxonExecContext context;
 
+  char **files = NULL;
+  size_t len = 0;
   migrations = migratorContext->migrations;
-  context = axon_getContext("BEGIN", connInfo, AXON_ONLY_QUERY | AXON_KEEP_CONNECTION);
-  result = axon_psqlExecute(&context);
-
-  while (result == AXON_SUCCESS && migrations && *migrations) {
-    AxonMigration *migration = *migrations;
-    if (!migration->perform) {
-      migrations += 1;
-      continue;
+  while (migrations && *migrations) {
+    if ((*migrations)->perform) {
+      len += 1;
+      files = files ?
+              realloc(files, sizeof(char *) * (len + 1)) :
+              calloc(sizeof(char *), len + 1);
+      files[len - 1] = (*migrations)->path;
+      files[len] = 0;
     }
-    char *sql = kore_loadSQL(migration->path);
-    if (sql == NULL) {
-      /* LCOV_EXCL_START */
-      result = AXON_FAILURE;
-      break;
-      /* LCOV_EXCL_STOP */
-    }
-
-    context.sql = sql;
-    result = axon_psqlExecute(&context);
-    if (result != AXON_SUCCESS) {
-      fprintf(stderr, "\n");
-      fprintf(stderr, "%-90s %s[FAILED]%s\n", migration->path, AXON_COLOR_RED, AXON_COLOR_NRM);
-      fprintf(stderr, "  aborting (all changes will be reversed)...\n\n%s[SQL]%s %s\n",
-              AXON_COLOR_CYN, AXON_COLOR_NRM, sql);
-      free(sql);
-      break;
-    } else {
-      fprintf(stdout, "%-90s %s[OK]%s\n", migration->path, AXON_COLOR_GRN, AXON_COLOR_NRM);
-    }
-    free(sql);
     migrations += 1;
   }
-
-  if (result == AXON_SUCCESS) {
-    context.sql = "END";
-    context.type = AXON_ONLY_QUERY;
-    axon_psqlExecute(&context);
-  } else {
-    context.sql = "ROLLBACK";
-    context.type = AXON_ONLY_QUERY;
-    axon_psqlExecute(&context);
+  AxonSequence *axonSequence = axon_getSequence(connInfo, files, len);
+  result = axon_execSequence(axonSequence);
+  if (axonSequence->errorMessage) {
+    fprintf(stderr, "      %s%s%s\n", AXON_COLOR_RED, axonSequence->errorMessage, AXON_COLOR_NRM);
   }
-
+  axon_freeSequence(axonSequence);
   axon_freeMigrations(migratorContext, result == AXON_SUCCESS);
   free(connInfo);
+  free(files);
 
   return result;
 }

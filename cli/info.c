@@ -15,10 +15,10 @@ void axon_info() {
       "axon %i.%i.%i\n"
           "  db - execute database operations\n"
           "db:\n"
-          "  kore db init\n"
-          "  kore db new table TABLE_NAME COLUMN COLUMN:TYPE\n"
-          "  kore db change TABLE_NAME add COLUMN:TYPE\n"
-          "  kore db change TABLE_NAME drop COLUMN\n",
+          "  axon db init\n"
+          "  axon db new table TABLE_NAME COLUMN COLUMN:TYPE\n"
+          "  axon db change TABLE_NAME add COLUMN:TYPE\n"
+          "  axon db change TABLE_NAME drop COLUMN\n",
       AXON_MAJOR_VERSION, AXON_MINOR_VERSION, AXON_PATCH_VERSION
   );
 }

@@ -1,4 +1,6 @@
-# axon
+# Axon
+[![Axon](https://s29.postimg.org/sas2d3drb/axon128x128.png)](https://github.com/Eraden/axon)
+
 
 [![CircleCI](https://circleci.com/gh/Eraden/axon/tree/master.svg?style=svg&circle-token=beb41b70d3092e2fd7d64a3989d1ea3de7bfe520)](https://circleci.com/gh/Eraden/axon/tree/master)
 [![codecov](https://codecov.io/gh/Eraden/axon/branch/master/graph/badge.svg)](https://codecov.io/gh/Eraden/axon)

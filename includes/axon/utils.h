@@ -4,13 +4,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <unitypes.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <errno.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <unitypes.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #include "axon/config.h"
 
@@ -46,3 +49,5 @@ char axon_mkdir(const char *path);
 int axon_runCommand(const char *cmd);
 
 char *axon_getDatabaseName(void);
+
+char *axon_readFile(const char *path);

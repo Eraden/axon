@@ -13,6 +13,7 @@ void ck_dropTestDb() {
   ck_redirectStderr(
       AxonExecContext context = axon_getContext("DROP DATABASE kore_test", "dbname = postgres", AXON_ONLY_QUERY);
       axon_psqlExecute(&context);
+      if (context.error) free(context.error);
   );
 }
 
@@ -20,6 +21,7 @@ void ck_createTestDb() {
   ck_redirectStderr(
       AxonExecContext context = axon_getContext("CREATE DATABASE kore_test", "dbname = postgres", AXON_ONLY_QUERY);
       axon_psqlExecute(&context);
+      if (context.error) free(context.error);
   );
 }
 

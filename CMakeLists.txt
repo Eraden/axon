@@ -43,6 +43,7 @@ SET(
 SET(
     AXON_MIGRATOR_SOURCE_FILES
     axon_migrator/db/exec.c
+    axon_migrator/db/exec_sequence.c
     axon_migrator/migrate.c
     axon_migrator/create.c
     axon_migrator/drop.c

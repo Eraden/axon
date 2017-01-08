@@ -20,6 +20,7 @@ typedef struct sAxonExecContext {
   char *connInfo;
   AxonExecType type;
   PGconn *conn;
+  char *error;
 } AxonExecContext;
 
 AxonExecContext axon_getContext(char *sql, char *connInfo, AxonExecType type);
