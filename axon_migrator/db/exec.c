@@ -1,4 +1,4 @@
-#include "axon/db/exec.h"
+#include <axon/db/exec.h>
 
 AxonExecContext axon_getContext(char *sql, char *connInfo, AxonExecType type) {
   AxonExecContext context;
@@ -6,6 +6,7 @@ AxonExecContext axon_getContext(char *sql, char *connInfo, AxonExecType type) {
   context.sql = sql;
   context.type = type;
   context.conn = NULL;
+  context.error = NULL;
   return context;
 }
 
@@ -16,7 +17,7 @@ char *axon_getConnectionInfo() {
   free(env);
   if (envConfig == NULL) {
     axon_freeConfig(config);
-    NO_DB_CONFIG_FOR_ENV_MSG
+    AXON_NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 
@@ -65,7 +66,11 @@ int axon_psqlExecute(AxonExecContext *context) {
     res = PQexec(conn, "BEGIN");
     /* LCOV_EXCL_START */
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      fprintf(stderr, "BEGIN command failed: %s\n", PQerrorMessage(conn));
+      char *psqlError = PQerrorMessage(conn);
+      char *error = calloc(sizeof(char), strlen(psqlError) + 1);
+      strcpy(error, psqlError);
+      context->error = error;
+
       PQclear(res);
       axon_exitNicely(context);
       return AXON_FAILURE;
@@ -80,8 +85,11 @@ int axon_psqlExecute(AxonExecContext *context) {
   res = PQexec(conn, formatted);
 
   if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-    char *reason = PQerrorMessage(conn);
-    fprintf(stderr, "Execute sql failed: '%s'\n", reason);
+    char *psqlError = PQerrorMessage(conn);
+    char *error = calloc(sizeof(char), strlen(psqlError) + 1);
+    strcpy(error, psqlError);
+    context->error = error;
+
     PQclear(res);
     free(formatted);
     axon_exitNicely(context);
@@ -95,7 +103,11 @@ int axon_psqlExecute(AxonExecContext *context) {
     res = PQexec(conn, "FETCH ALL in migrator");
     /* LCOV_EXCL_START */
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-      fprintf(stderr, "FETCH ALL failed: '%s'\n", PQerrorMessage(conn));
+      char *psqlError = PQerrorMessage(conn);
+      char *error = calloc(sizeof(char), strlen(psqlError) + 1);
+      strcpy(error, psqlError);
+      context->error = error;
+
       PQclear(res);
       axon_exitNicely(context);
       return AXON_FAILURE;

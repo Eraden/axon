@@ -1,7 +1,8 @@
 #pragma once
 
-#include "axon/utils.h"
-#include "axon/db/exec.h"
+#include <axon/utils.h>
+#include <axon/db/exec.h>
+#include <axon/db/exec_sequence.h>
 
 typedef struct sAxonMigration {
   int timestamp;
@@ -13,6 +14,8 @@ typedef struct sAxonMigratorContext {
   size_t len;
   AxonMigration **migrations;
 } AxonMigratorContext;
+
+#define AXON_MIGRATIONS_FILE "./.migrations"
 
 AxonMigratorContext *axon_loadMigrations(void);
 

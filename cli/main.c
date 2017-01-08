@@ -1,5 +1,5 @@
-#include "axon/info.h"
-#include "axon/db.h"
+#include <axon/info.h>
+#include <axon/db.h>
 
 int main(int argc, char **argv) {
   setlocale(LC_ALL, "");

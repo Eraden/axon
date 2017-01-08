@@ -1,4 +1,4 @@
-#include "axon/db/table.h"
+#include <axon/db/table.h>
 
 static void axon_freeColumn(AxonColumnData *column) {
   if (column == NULL) return;
@@ -35,8 +35,8 @@ static AxonColumnData *axon_getColumn(char *rawColumn) {
         fill += 1;
       } else {
         if (current == columnName) current = fill = columnType;
-        else if (current == columnType) current = fill = columnDefault;
-        else if (current == columnDefault) current = fill = NULL;
+        else if (current == columnType) current = fill = columnDefault; /* LCOV_EXCL_LINE */
+        else if (current == columnDefault) current = fill = NULL; /* LCOV_EXCL_LINE */
       }
       ptr += 1;
     }
@@ -69,7 +69,7 @@ static void axon_createMigrationInfo(char *fileName) {
   axon_createInfo(&db);
 }
 
-char axon_dbNewTable(int argc, char **argv) {
+int axon_dbNewTable(int argc, char **argv) {
   if (argc < 5) return 0;
   axon_ensureStructure();
 
@@ -114,7 +114,7 @@ char axon_dbNewTable(int argc, char **argv) {
   return AXON_SUCCESS;
 }
 
-char axon_dbChange(int argc, char **argv) {
+int axon_dbChange(int argc, char **argv) {
   if (argc < 6) return 0;
   axon_ensureStructure();
 
@@ -124,8 +124,7 @@ char axon_dbChange(int argc, char **argv) {
 
   char *fileName = calloc(sizeof(char), AXON_MIGRATION_FILE_NAME_LEN);
   FILE *f = axon_createMigration(&fileName, "%llu_change_table_%s.sql", name);
-  if (f == NULL)
-    return AXON_FAILURE; /* LCOV_EXCL_LINE */
+  if (f == NULL) return AXON_FAILURE; /* LCOV_EXCL_LINE */
   AxonColumnData *column = axon_getColumn(argv[5]);
 
   fprintf(f, "ALTER TABLE %s", name);
@@ -138,7 +137,7 @@ char axon_dbChange(int argc, char **argv) {
     result = AXON_SUCCESS;
   } else {
     fprintf(stderr, "Unknown change operation '%s'\n", op);
-    result = AXON_FAILURE;
+    result = AXON_UNKNOWN_COMMAND;
   }
 
   fclose(f);

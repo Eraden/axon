@@ -1,4 +1,4 @@
-#include "axon/utils.h"
+#include <axon/utils.h>
 
 static const u_int32_t AXON_LAST_LEAF = L'└';
 static const u_int32_t AXON_INTERSECTION_LEAF = L'├';
@@ -83,7 +83,10 @@ int axon_runCommand(const char *command) {
   free(runCmd);
   while (!feof(cmd)) {
     char c = (char) fgetc(cmd);
-    if (c && isascii(c)) printf("%c", c);
+    if (c && isascii(c))
+      printf("%c", c);
+    else
+      break;
   }
   int result = pclose(cmd);
   result = __WEXITSTATUS(result);
@@ -118,7 +121,7 @@ char *axon_getDatabaseName() {
   free(env);
   if (envConfig == NULL) {
     axon_freeConfig(config);
-    NO_DB_CONFIG_FOR_ENV_MSG
+    AXON_NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 
@@ -126,4 +129,24 @@ char *axon_getDatabaseName() {
   strcat(name, envConfig->name);
   axon_freeConfig(config);
   return name;
+}
+
+char *axon_readFile(const char *path) {
+  struct stat sb;
+  int res = 0;
+  char *p = NULL;
+  int fd;
+  fd = open(path, O_RDONLY);
+  if (fd == -1) return NULL;
+  res = fstat(fd, &sb);
+  if (res == -1) return NULL;
+  if (!S_ISREG(sb.st_mode)) return NULL;
+  p = mmap(0, (size_t) sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+  if (p == MAP_FAILED) return NULL;
+  char *content = calloc(sizeof(char), (size_t) sb.st_size + 1);
+  for (size_t i = 0; i < sb.st_size; i++)
+    content[i] = p[i];
+  munmap(p, (size_t) sb.st_size);
+
+  return content;
 }

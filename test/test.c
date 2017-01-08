@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
   sr = srunner_create(s);
   srunner_set_fork_status(sr, CK_NOFORK);
 
-  test_utils(s);
   test_config(s);
+  test_utils(s);
   test_cli(s);
   test_migrator(s);
 
