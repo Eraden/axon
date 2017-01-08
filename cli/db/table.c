@@ -35,8 +35,8 @@ static AxonColumnData *axon_getColumn(char *rawColumn) {
         fill += 1;
       } else {
         if (current == columnName) current = fill = columnType;
-        else if (current == columnType) current = fill = columnDefault;
-        else if (current == columnDefault) current = fill = NULL;
+        else if (current == columnType) current = fill = columnDefault; /* LCOV_EXCL_LINE */
+        else if (current == columnDefault) current = fill = NULL; /* LCOV_EXCL_LINE */
       }
       ptr += 1;
     }

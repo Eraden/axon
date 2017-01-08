@@ -14,9 +14,9 @@ void createInitSource() {
 
 void createInitHeader() {
   WITHIN(dummyRoot,
-    FILE *f = fopen("./src/db/init.c", "w+");
+         FILE *f = fopen("./src/db/init.h", "w+");
     if (f == NULL) {
-      fprintf(stderr, "Can't write to \"./db/src/init.c\"");
+      fprintf(stderr, "Can't write to \"./db/src/init.h\"");
       exit(EXIT_FAILURE);
     }
     fprintf(f, "%s", INIT_HEADER_CONTENT);
@@ -27,10 +27,11 @@ void createInitHeader() {
 void __attribute__((__used__))
 _prepare_clear_state(void) {
   GO_TO_DUMMY
-  ck_unlink("./.migrations");
+  ck_unlink(AXON_MIGRATIONS_FILE);
   ck_unlink("./log");
   ck_unlink("./db");
   ck_unlink("./src/db");
+  ck_unlink("./conf/database.yml");
 
   ck_redirectStdout(
       ck_redirectStderr(

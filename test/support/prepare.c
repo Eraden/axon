@@ -38,7 +38,7 @@ void prepare() {
   }
   GO_TO_DUMMY
   ck_unlink(logRoot);
-  ck_unlink("./.migrations");
+  ck_unlink(AXON_MIGRATIONS_FILE);
   axon_mkdir(logRoot);
   ck_dropTestDb();
 }

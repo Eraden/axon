@@ -2,7 +2,7 @@
 
 static void axon_markPerformed(AxonMigration **migrations) {
   AxonMigration **ptr = migrations;
-  FILE *save = fopen("./.migrations", "r");
+  FILE *save = fopen(AXON_MIGRATIONS_FILE, "r");
   if (save == NULL) return;
   char *buffer = NULL;
 
@@ -198,7 +198,7 @@ void axon_freeMigrations(AxonMigratorContext *migratorContext, const char writeT
   AxonMigration **migrations = migratorContext->migrations;
   while (migrations && *migrations) {
     if (writeToSave && (*migrations)->perform) {
-      FILE *save = fopen("./.migrations", "a+");
+      FILE *save = fopen(AXON_MIGRATIONS_FILE, "a+");
       if (save) {
         fprintf(save, "%i\n", (*migrations)->timestamp);
         fclose(save);

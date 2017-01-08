@@ -83,7 +83,10 @@ int axon_runCommand(const char *command) {
   free(runCmd);
   while (!feof(cmd)) {
     char c = (char) fgetc(cmd);
-    if (c && isascii(c)) printf("%c", c);
+    if (c && isascii(c))
+      printf("%c", c);
+    else
+      break;
   }
   int result = pclose(cmd);
   result = __WEXITSTATUS(result);

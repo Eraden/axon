@@ -116,7 +116,7 @@ START_TEST(test_migrateWithPerformed)
   char buffer[1024];
   memset(buffer, 0, 1024);
   sprintf(buffer, "%lli\n%lli\n", now + 1, now + 2);
-  FILE *f = fopen("./.migrations", "w+");
+  FILE *f = fopen(AXON_MIGRATIONS_FILE, "w+");
   ck_assert_ptr_ne(f, NULL);
   fprintf(f, "%s", buffer);
   fclose(f);
@@ -134,7 +134,7 @@ START_TEST(test_invalidMigrate)
   result = axon_migrate();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
-  ck_unlink("./.migrations");
+  ck_unlink(AXON_MIGRATIONS_FILE);
   ck_make_dummy_sql("third", "CREATE TABLE third(id serial)", now + 3);
   ck_make_dummy_sql("fourth", "CREATE TABLE fourth(id serial)", now + 4);
   ck_redirectStderr(result = axon_migrate();)
@@ -154,8 +154,8 @@ START_TEST(test_markedPerformed)
   ck_make_dummy_sql("six", "SELECT 1", now + 6);
   ck_make_dummy_sql("seven", "SELECT 1", now + 7);
   axon_touch("./db/migrate/hello_world");
-  ck_unlink("./.migrations");
-  FILE *f = fopen("./.migrations", "a+");
+  ck_unlink(AXON_MIGRATIONS_FILE);
+  FILE *f = fopen(AXON_MIGRATIONS_FILE, "a+");
   for (short int i = 0; i < 5; i++) {
     fprintf(f, "%lli\n", now + i + 1);
   }

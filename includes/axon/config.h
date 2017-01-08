@@ -4,6 +4,12 @@
 
 #include <yaml.h>
 
+typedef enum eAxonOrderTarget {
+  AXON_ORDER_TARGET_NONE,
+  AXON_ORDER_TARGET_SEED,
+  AXON_ORDER_TARGET_SETUP
+} AxonOrderTarget;
+
 typedef struct sAxonEnvironmentConfig {
   char *connectionName;
   char *host;
@@ -25,6 +31,8 @@ typedef struct sAxonOrder {
 } AxonOrder;
 
 #define NO_DB_CONFIG_FOR_ENV_MSG fprintf(stderr, "No database config file for current env!\n");
+#define AXON_DATABASE_CONFIG_FILE "./conf/database.yml"
+#define AXON_ORDER_CONFIG_FILE "./db/order.yml"
 
 void axon_createConfig(void);
 

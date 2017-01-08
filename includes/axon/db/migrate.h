@@ -14,6 +14,8 @@ typedef struct sAxonMigratorContext {
   AxonMigration **migrations;
 } AxonMigratorContext;
 
+#define AXON_MIGRATIONS_FILE "./.migrations"
+
 AxonMigratorContext *axon_loadMigrations(void);
 
 void axon_freeMigrations(AxonMigratorContext *axonMigratorContext, const char writeToSave);

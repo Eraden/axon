@@ -1,4 +1,5 @@
 #include "test_cli.h"
+#include "./support/reset_environment.h"
 
 START_TEST(test_invalidDirectory)
   GO_TO_DUMMY
@@ -18,7 +19,7 @@ START_TEST(test_dbInit)
   GO_TO_DUMMY
   ck_unlink("./db");
   ck_unlink("./src/db");
-  ck_unlink("./.migrations");
+  ck_unlink(AXON_MIGRATIONS_FILE);
 
   char *args[4] = {"inline", "db", "init", NULL};
   ck_redirectStdout(
@@ -143,12 +144,9 @@ START_TEST(test_dbInitExists)
   ck_path_contains("./log/error.info", "DB init does not exists! Type `axon db init` to create it");
 END_TEST
 
-START_TEST(test_DBmigrate)
+START_TEST(test_migrateDatabase)
   GO_TO_DUMMY
-  ck_unlink("./db");
-  ck_ensureDbEnv();
-  ck_dropTestDb();
-  ck_createTestDb();
+  IN_CLEAR_STATE(/* */)
   ck_make_dummy_sql("simple_create", "CREATE TABLE accounts (id serial)", NOW() + 1);
   ck_make_dummy_sql("simple_alter", "ALTER TABLE accounts ADD COLUMN login text", NOW() + 2);
 
@@ -163,10 +161,8 @@ END_TEST
 
 START_TEST(test_createDB)
   GO_TO_DUMMY
-  ck_unlink("./db");
-  ck_ensureDbEnv();
+  IN_CLEAR_STATE(/* */)
   ck_dropTestDb();
-
   char *args[3] = {"inline", "db", "create"};
   int result = 0;
 
@@ -178,10 +174,7 @@ END_TEST
 
 START_TEST(test_dropDB)
   GO_TO_DUMMY
-  ck_unlink("./db");
-  ck_ensureDbEnv();
-  ck_dropTestDb();
-  ck_createTestDb();
+  IN_CLEAR_STATE(/* */)
 
   char *args[3] = {"inline", "db", "drop"};
   int result = 0;
@@ -216,7 +209,7 @@ void test_cli(Suite *s) {
   tcase_add_test(testCaseDatabase, test_dbInit);
   tcase_add_test(testCaseDatabase, test_newTable);
   tcase_add_test(testCaseDatabase, test_dbChange);
-  tcase_add_test(testCaseDatabase, test_DBmigrate);
+  tcase_add_test(testCaseDatabase, test_migrateDatabase);
   tcase_add_test(testCaseDatabase, test_createDB);
   tcase_add_test(testCaseDatabase, test_dropDB);
   tcase_add_test(testCaseDatabase, test_unknownCmd);
