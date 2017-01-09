@@ -53,6 +53,7 @@ int axon_ensureStructure(void) {
   if (axon_checkIO("./src") == 0)
     return AXON_INVALID_DIRECTORY;
 
+  axon_mkdir("./.axon");
   axon_mkdir("./conf");
   axon_mkdir("./src");
   axon_mkdir("./src/db");
@@ -166,7 +167,15 @@ int axon_runCommandArgv(const char *cmd, int since, int argc, char **argv) {
     char *arg = argv[i + since];
     if (arg == NULL) break;
     len = len + strlen(arg) + 1;
-    command = realloc(command, sizeof(char) * (len + 1));
+    char *ptr = realloc(command, sizeof(char) * (len + 1));
+    /* LCOV_EXCL_START */
+    if (ptr == NULL) {
+      free(command);
+      return AXON_FAILURE;
+    } else {
+      command = ptr;
+    }
+    /* LCOV_EXCL_STOP */
     strcat(command, " ");
     strcat(command, arg);
     command[len] = 0;
