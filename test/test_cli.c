@@ -185,6 +185,18 @@ START_TEST(test_dropDB)
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
+START_TEST(test_setupDatabase)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  char *args[3] = {"inline", "db", "setup"};
+  int result = 0;
+
+  ck_redirectStdout(
+      result = axon_dbExec(3, args);
+  )
+  ck_assert_int_eq(result, AXON_SUCCESS);
+END_TEST
+
 START_TEST(test_unknownCmd)
   GO_TO_DUMMY
   ck_unlink("./db");
@@ -212,6 +224,7 @@ void test_cli(Suite *s) {
   tcase_add_test(testCaseDatabase, test_migrateDatabase);
   tcase_add_test(testCaseDatabase, test_createDB);
   tcase_add_test(testCaseDatabase, test_dropDB);
+  tcase_add_test(testCaseDatabase, test_setupDatabase);
   tcase_add_test(testCaseDatabase, test_unknownCmd);
   suite_add_tcase(s, testCaseDatabase);
 }

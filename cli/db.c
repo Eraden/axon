@@ -76,6 +76,8 @@ char axon_dbExec(int argc, char **argv) {
     return (char) axon_runCommand("axon-migrator create");
   } else if (strcmp(op, "drop") == 0) {
     return (char) axon_runCommand("axon-migrator drop");
+  } else if (strcmp(op, "setup") == 0) {
+    return (char) axon_runCommand("axon-migrator setup");
   } else {
     return AXON_UNKNOWN_COMMAND;
   }
