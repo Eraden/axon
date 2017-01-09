@@ -6,6 +6,11 @@ static int axon_dropCommand(int argc, char **argv);
 
 static int axon_newCommand(int argc, char **argv) {
   if (argc < 3) return AXON_NOT_ENOUGH_ARGS;
+  int result = axon_ensureStructure();
+  if (result != AXON_SUCCESS) {
+    AXON_NO_SRC_DIRECTORY_MSG
+    return result;
+  }
 
   const char *type = argv[2];
 

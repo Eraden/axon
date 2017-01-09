@@ -9,6 +9,7 @@ export CC=$(which gcc)
 rm -Rf build
 mkdir build
 cd build
+export C_INCLUDE_PATH=${C_INCLUDE_PATH}:$PWD/includes
 export PATH=$PATH:$PWD
 cmake -DCMAKE_C_COMPILER=$(which gcc) -DCMAKE_BUILD_TYPE=Debug ..
 make -j 4

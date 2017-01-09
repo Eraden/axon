@@ -25,7 +25,8 @@ START_TEST(test_migratorMigrate)
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples DROP COLUMN login;", NOW() + 3);
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples ADD COLUMN created_at timestamp;", NOW() + 4);
 
-  ck_assert_int_eq(axon_migrate(), AXON_SUCCESS);
+  char *args[3] = {"inline", "migrate", "--skip-triggers"};
+  ck_assert_int_eq(axon_migrate(3, args), AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_migratorCreateDatabase)
@@ -33,9 +34,7 @@ START_TEST(test_migratorCreateDatabase)
   IN_CLEAR_STATE(/* */)
   int result;
   ck_dropTestDb();
-  ck_redirectStderr(
-      result = axon_createDatabase();
-  )
+  ck_redirectStderr(result = axon_createDatabase();)
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
@@ -43,7 +42,7 @@ START_TEST(test_migratorCreateDatabaseWithoutConfig)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
   ck_dropTestDb();
-  ck_unlink("./conf/database.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
   int result;
   ck_redirectStderr(
       result = axon_createDatabase();
@@ -55,7 +54,7 @@ START_TEST(test_migratorDropDatabaseWithoutConfig)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
   ck_dropTestDb();
-  ck_unlink("./conf/database.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
   int result;
   ck_redirectStderr(
       result = axon_dropDatabase();
@@ -67,7 +66,7 @@ START_TEST(test_getContextNoConfig)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
   putenv("KORE_ENV=invalid-env");
-  ck_unlink("./conf/database.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
   char *info = NULL;
   ck_redirectStderr(axon_getConnectionInfo();)
   ck_assert_ptr_eq(info, NULL);
@@ -78,12 +77,42 @@ END_TEST
 START_TEST(test_getContextNoDbName)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
-  ck_overrideFile("./conf/database.yml", "test:\n  host: localhost\n");
+  ck_overrideFile(AXON_DATABASE_CONFIG_FILE, "test:\n  host: localhost\n");
   char *info = NULL;
   ck_redirectStderr(axon_getConnectionInfo();)
   ck_assert_ptr_eq(info, NULL);
   ck_unlink("./conf/database.yml");
   IN_CLEAR_STATE(/* */);
+END_TEST
+
+START_TEST(test_migrateWithCallbacks)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  ck_writeTestTriggersConfig();
+  int result;
+  long long unsigned now = 123456789;
+  char *beforeCallback = "./db/migrate/123456789_before_callback.c";
+  char *afterCallback = "./db/migrate/123456789_after_callback.c";
+
+  ck_make_dummy_sql("create_posts", "CREATE TEMP TABLE posts (id serial);", now);
+
+  ck_axon_dummy_triggers(
+      beforeCallback, "#include <axon/triggers.h>\n"
+          "void freePayload(void *ptr) { printf(\"Hello free payload\\n\"); free(ptr); }\n"
+          "#include <axon/codes.h>\n"
+          "#include <axon/utils.h>\n"
+          "int before_123456789_callback(AxonCallbackData *data) {\n"
+          "  data->freePayload = freePayload;\n"
+          "  data->payload = calloc(sizeof(char), strlen(\"CREATE TEMP TABLE replace(id serial);\") + 1);\n"
+          "  strcpy(data->payload, \"CREATE TEMP TABLE replace(id serial);\");\n"
+          "  return AXON_SUCCESS;\n"
+          "}",
+      afterCallback, NULL
+  );
+
+  char *args[2] = {"inline", "migrate"};
+  result = axon_runMigrator(2, args);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_psqlExecNoConnInfo)
@@ -148,7 +177,9 @@ START_TEST(test_migrateWithPerformed)
   ck_assert_ptr_ne(f, NULL);
   fprintf(f, "%s", buffer);
   fclose(f);
-  int result = axon_migrate();
+
+  char *args[3] = {"inline", "migrate", "--skip-triggers"};
+  int result = axon_migrate(3, args);
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
@@ -157,15 +188,17 @@ START_TEST(test_invalidMigrate)
   IN_CLEAR_STATE(/* */)
   const long long now = NOW();
   int result;
+  char *args[3] = {"inline", "migrate", "--skip-triggers"};
+
   ck_make_dummy_sql("first", "CREATE TABLE first(id serial)", now + 1);
   ck_make_dummy_sql("second", "CREATE TABLE second(id serial)", now + 2);
-  result = axon_migrate();
+  result = axon_migrate(3, args);
   ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_unlink(AXON_MIGRATIONS_FILE);
   ck_make_dummy_sql("third", "CREATE TABLE third(id serial)", now + 3);
   ck_make_dummy_sql("fourth", "CREATE TABLE fourth(id serial)", now + 4);
-  ck_redirectStderr(result = axon_migrate();)
+  ck_redirectStderr(result = axon_migrate(3, args);)
   ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
   ck_path_contains("./log/error.log", "aborting (all changes will be reversed)...");
 END_TEST
@@ -231,23 +264,27 @@ START_TEST(test_axonSetup)
   axon_createConfig();
 
   int result;
-  ck_unlink("db/order.yml");
+  ck_unlink(AXON_ORDER_CONFIG_FILE);
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
-  ck_overrideFile("db/order.yml", "setup:\n  - one.sql\n  - two.sql\n  tree.sql\n");
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  - one.sql\n  - two.sql\n  tree.sql\n");
+  result = axon_setup();
+  ck_assert_int_eq(result, AXON_SUCCESS);
+
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - one.sql\n  - two.sql\n  tree.sql\n");
   ck_overrideFile("db/setup/one.sql", "CREATE TABLE test1(id serial);");
   ck_overrideFile("db/setup/two.sql", "CREATE TABLE test2(id serial);");
   ck_overrideFile("db/setup/tree.sql", "CREATE TABLE test3(id serial);");
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
-  ck_overrideFile("db/order.yml", "setup:\n  - four.sql\n  - five.sql\n");
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - four.sql\n  - five.sql\n");
   ck_overrideFile("db/setup/five.sql", "CREATE TABLE test5(id serial);");
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
-  ck_overrideFile("db/order.yml", "setup:\n  - five.sql\n");
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - five.sql\n");
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
 END_TEST
@@ -306,5 +343,6 @@ void test_migrator(Suite *s) {
   tcase_add_test(testCaseDatabase, test_isSetup);
   tcase_add_test(testCaseDatabase, test_axonSetup);
   tcase_add_test(testCaseDatabase, test_sequence);
+  tcase_add_test(testCaseDatabase, test_migrateWithCallbacks);
   suite_add_tcase(s, testCaseDatabase);
 }

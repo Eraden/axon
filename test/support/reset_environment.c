@@ -31,8 +31,8 @@ _prepare_clear_state(void) {
   ck_unlink("./log");
   ck_unlink("./db");
   ck_unlink("./src/db");
-  ck_unlink("./conf/database.yml");
-  ck_unlink("./db/order.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
+  ck_unlink(AXON_ORDER_CONFIG_FILE);
 
   ck_redirectStdout(
       ck_redirectStderr(
@@ -40,7 +40,6 @@ _prepare_clear_state(void) {
       createInitSource();
       createInitHeader();
       axon_createConfig();
-      axon_createOrder();
       ck_dropTestDb();
       ck_createTestDb();
   )

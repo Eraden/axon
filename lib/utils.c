@@ -1,5 +1,5 @@
-#include <axon/utils.h>
 #include <axon/codes.h>
+#include <axon/utils.h>
 
 static const u_int32_t AXON_LAST_LEAF = L'└';
 static const u_int32_t AXON_INTERSECTION_LEAF = L'├';
@@ -53,6 +53,7 @@ int axon_ensureStructure(void) {
   if (axon_checkIO("./src") == 0)
     return AXON_INVALID_DIRECTORY;
 
+  axon_mkdir("./.axon");
   axon_mkdir("./conf");
   axon_mkdir("./src");
   axon_mkdir("./src/db");
@@ -122,18 +123,18 @@ void axon_drawGraph(AxonGraph *axonGraph, size_t indent) {
 
 char *axon_getDatabaseName() {
   char *env = axon_getFlavor();
-  AxonConfig *config = axon_readConfig();
-  AxonEnvironmentConfig *envConfig = axon_findEnvConfig(config, env);
+  AxonConfig *config = axon_readDatabaseConfig();
+  AxonEnvironmentConfig *envConfig = axon_findEnvDatabaseConfig(config, env);
   free(env);
   if (envConfig == NULL) {
-    axon_freeConfig(config);
+    axon_freeDatabaseConfig(config);
     AXON_NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 
   char *name = calloc(sizeof(char), strlen(envConfig->name) + 1);
   strcat(name, envConfig->name);
-  axon_freeConfig(config);
+  axon_freeDatabaseConfig(config);
   return name;
 }
 
@@ -166,7 +167,15 @@ int axon_runCommandArgv(const char *cmd, int since, int argc, char **argv) {
     char *arg = argv[i + since];
     if (arg == NULL) break;
     len = len + strlen(arg) + 1;
-    command = realloc(command, sizeof(char) * (len + 1));
+    char *ptr = realloc(command, sizeof(char) * (len + 1));
+    /* LCOV_EXCL_START */
+    if (ptr == NULL) {
+      free(command);
+      return AXON_FAILURE;
+    } else {
+      command = ptr;
+    }
+    /* LCOV_EXCL_STOP */
     strcat(command, " ");
     strcat(command, arg);
     command[len] = 0;

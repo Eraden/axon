@@ -186,6 +186,57 @@ static int axon_loadMigrationFiles(AxonMigratorContext *context) {
   return AXON_SUCCESS;
 }
 
+static char axon_withTriggers(int argc, char **argv) {
+  for (int i = 2; i < argc; i++) {
+    if (strcmp(argv[i], "--skip-triggers") == 0) return 0;
+  }
+  return 1;
+}
+
+static int axon_migrateWithTriggers(AxonMigratorContext *context) {
+  int result = AXON_SUCCESS;
+  AxonMigration **migrations = context->migrations;
+  while (migrations && *migrations) {
+    AxonMigration *migration = *migrations;
+    if (migration->perform) {
+      char *cmd = calloc(sizeof(char), 1024);
+      sprintf(cmd, "axon-requester %i %s", migration->timestamp, migration->path);
+      result = axon_runCommand(cmd);
+      free(cmd);
+      if (result != AXON_SUCCESS) break;
+    }
+    migrations += 1;
+  }
+  return result;
+}
+
+static int axon_migrateWithoutTriggers(AxonMigratorContext *context) {
+  char **files = NULL;
+  size_t len = 0;
+
+  AxonMigration **migrations = context->migrations;
+  while (migrations && *migrations) {
+    if ((*migrations)->perform) {
+      len += 1;
+      files = files ?
+              realloc(files, sizeof(char *) * (len + 1)) :
+              calloc(sizeof(char *), len + 1);
+      files[len - 1] = (*migrations)->path;
+      files[len] = 0;
+    }
+    migrations += 1;
+  }
+
+  AxonSequence *axonSequence = axon_getSequence(context->connInfo, files, len);
+  int result = axon_execSequence(axonSequence);
+  if (axonSequence->errorMessage) {
+    fprintf(stderr, "      %s%s%s\n", AXON_COLOR_RED, axonSequence->errorMessage, AXON_COLOR_NRM);
+  }
+  axon_freeSequence(axonSequence);
+  free(files);
+  return result;
+}
+
 AxonMigratorContext *axon_loadMigrations(void) {
   AxonMigratorContext *context = calloc(sizeof(AxonMigratorContext), 1);
   if (axon_loadMigrationFiles(context) == AXON_SUCCESS) {
@@ -208,6 +259,7 @@ void axon_freeMigrations(AxonMigratorContext *migratorContext, const char writeT
     free(*migrations);
     migrations += 1;
   }
+  free(migratorContext->connInfo);
   free(migratorContext->migrations);
   free(migratorContext);
 }
@@ -216,38 +268,17 @@ char axon_isMigrate(const char *arg) {
   return strcmp(arg, "migrate") == 0;
 }
 
-int axon_migrate() {
+int axon_migrate(int argc, char **argv) {
   char *connInfo = axon_getConnectionInfo();
   if (connInfo == NULL)
     return AXON_CONFIG_MISSING; /* LCOV_EXCL_LINE */
 
   AxonMigratorContext *migratorContext = axon_loadMigrations();
-  AxonMigration **migrations = NULL;
-  int result;
-
-  char **files = NULL;
-  size_t len = 0;
-  migrations = migratorContext->migrations;
-  while (migrations && *migrations) {
-    if ((*migrations)->perform) {
-      len += 1;
-      files = files ?
-              realloc(files, sizeof(char *) * (len + 1)) :
-              calloc(sizeof(char *), len + 1);
-      files[len - 1] = (*migrations)->path;
-      files[len] = 0;
-    }
-    migrations += 1;
-  }
-  AxonSequence *axonSequence = axon_getSequence(connInfo, files, len);
-  result = axon_execSequence(axonSequence);
-  if (axonSequence->errorMessage) {
-    fprintf(stderr, "      %s%s%s\n", AXON_COLOR_RED, axonSequence->errorMessage, AXON_COLOR_NRM);
-  }
-  axon_freeSequence(axonSequence);
+  migratorContext->connInfo = connInfo;
+  int result = axon_withTriggers(argc, argv) ?
+               axon_migrateWithTriggers(migratorContext) :
+               axon_migrateWithoutTriggers(migratorContext);
   axon_freeMigrations(migratorContext, result == AXON_SUCCESS);
-  free(connInfo);
-  free(files);
 
   return result;
 }

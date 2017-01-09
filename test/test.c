@@ -4,6 +4,8 @@
 #include "test_migrator.h"
 #include "test_utils.h"
 #include "test_creator.h"
+#include "test_compiler.h"
+#include "test_requester.h"
 
 int main(int argc, char **argv) {
   setlocale(LC_ALL, "");
@@ -27,6 +29,8 @@ int main(int argc, char **argv) {
   test_cli(s);
   test_creator(s);
   test_migrator(s);
+  test_compiler(s);
+  test_requester(s);
 
   srunner_run_all(sr, CK_SILENT);
   number_failed += srunner_ntests_failed(sr);

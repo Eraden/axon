@@ -11,6 +11,7 @@ echo "clang path: $(which clang)"
 rm -Rf build
 mkdir build
 cd build
+export C_INCLUDE_PATH=${C_INCLUDE_PATH}:$PWD/includes
 export PATH=$PATH:$PWD
 cmake -DCMAKE_C_COMPILER=$(which clang-3.8) -DCMAKE_CXX_COMPILER=$(which clang++-3.8) -DCMAKE_BUILD_TYPE=Debug ..
 make -j 4

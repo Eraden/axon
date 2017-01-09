@@ -7,7 +7,7 @@ int axon_runMigrator(int argc, char **argv) {
   }
 
   if (axon_isMigrate(argv[1])) {
-    return axon_migrate();
+    return axon_migrate(argc, argv);
   } else if (axon_isDatabaseCreate(argv[1])) {
     return axon_createDatabase();
   } else if (axon_isDatabaseDrop(argv[1])) {

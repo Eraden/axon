@@ -7,9 +7,10 @@ char axon_isSetup(char *str) {
 int axon_setup() {
   char *connInfo = axon_getConnectionInfo();
   if (connInfo == NULL) return AXON_NO_CONN_INFO;
-  AxonOrder *axonOrder = axon_readOrder();
-  if (axonOrder == NULL || axonOrder->setupFiles == NULL) {
+  AxonOrder *axonOrder = axon_readOrderConfig();
+  if (axonOrder->setupFiles == NULL) {
     free(connInfo);
+    axon_freeOrderConfig(axonOrder);
     fprintf(stdout, "%sNothing to do or order malformed!%s\n", AXON_COLOR_MAG, AXON_COLOR_NRM);
     return AXON_SUCCESS;
   }
@@ -35,7 +36,7 @@ int axon_setup() {
     }
     files += 1;
   }
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
   AxonSequence *axonSequence = axon_getSequence(connInfo, sequenceFiles, len);
   int result = axon_execSequence(axonSequence);
   if (axonSequence->errorMessage) {
