@@ -15,10 +15,14 @@
 #include "./support/variables.h"
 #include "./support/ck_io.h"
 #include "./support/prepare.h"
-#include "koro/db/create.h"
-#include "koro/db/migrate.h"
-#include "koro/db/init.h"
-#include "koro/db.h"
-#include "koro/info.h"
+
+#include <axon/db/create.h>
+#include <axon/db/init.h>
+#include <axon/db/drop.h>
+#include <axon/db/create.h>
+#include <axon/db/migrate.h>
+#include <axon/db/setup.h>
+#include <axon/db.h>
+#include <axon/info.h>
 
 #define GO_TO_DUMMY chdir(dummyRoot);

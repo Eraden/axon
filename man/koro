@@ -1,36 +1,36 @@
-.TH man 8 "04 Jan 2017" "1.0" "koro"
+.TH man 8 "04 Jan 2017" "1.0" "axon"
 .SH NAME
-koro \- manage kore application
+axon \- manage kore application
 
 .SH SYNOPSIS
-koro
+axon
 
 .SH DESCRIPTION
-koro creates migrations and database connection initializer.
+axon creates migrations and database connection initializer.
 
 .SH OPTIONS
 info help db
 .SH EXAMPLES
-koro info
+axon info
 
-koro help
+axon help
 
-koro --help
+axon --help
 
-koro -h
+axon -h
 
-koro db init
+axon db init
 
-koro db new table accounts id login:varchar
+axon db new table accounts id login:varchar
 
-koro db change accounts add login
+axon db change accounts add login
 
-koro db change accounts drop login
+axon db change accounts drop login
 
-koro migrate
+axon migrate
 
 .SH SEE ALSO
-koro-migrator
+axon-migrator
 .SH BUGS
 No known bugs.
 .SH AUTHOR

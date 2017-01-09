@@ -5,6 +5,6 @@
 
 #include "../../version.h"
 
-char koro_isInfo(const char *str);
+char axon_isInfo(const char *str);
 
-void koro_info();
+void axon_info();

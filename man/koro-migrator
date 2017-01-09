@@ -1,9 +1,9 @@
-.TH man 8 "04 Jan 2017" "1.0" "koro-migrator"
+.TH man 8 "04 Jan 2017" "1.0" "axon-migrator"
 .SH NAME
-koro-migrator \- execute sql
+axon-migrator \- execute sql
 
 .SH SYNOPSIS
-koro-migrator
+axon-migrator
 
 .SH DESCRIPTION
 Create database, drop database and execute migrations files.
@@ -11,14 +11,14 @@ Create database, drop database and execute migrations files.
 .SH OPTIONS
 create drop migrate
 .SH EXAMPLES
-koro-migrator create
+axon-migrator create
 
-koro-migrator drop
+axon-migrator drop
 
-koro-migrator migrate
+axon-migrator migrate
 
 .SH SEE ALSO
-koro
+axon
 .SH BUGS
 No known bugs.
 .SH AUTHOR

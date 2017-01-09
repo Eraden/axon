@@ -1,5 +1,4 @@
 #include "./ck_io.h"
-#include "koro/db/exec.h"
 
 static int ck_removeDirectory(const char *path);
 
@@ -12,15 +11,17 @@ int stdoutReplaced;
 
 void ck_dropTestDb() {
   ck_redirectStderr(
-      KoroExecContext context = koro_getContext("DROP DATABASE kore_test", "dbname = postgres", KORO_ONLY_QUERY);
-      koro_psqlExecute(&context);
+      AxonExecContext context = axon_getContext("DROP DATABASE kore_test", "dbname = postgres", AXON_ONLY_QUERY);
+      axon_psqlExecute(&context);
+      if (context.error) free(context.error);
   );
 }
 
 void ck_createTestDb() {
   ck_redirectStderr(
-      KoroExecContext context = koro_getContext("CREATE DATABASE kore_test", "dbname = postgres", KORO_ONLY_QUERY);
-      koro_psqlExecute(&context);
+      AxonExecContext context = axon_getContext("CREATE DATABASE kore_test", "dbname = postgres", AXON_ONLY_QUERY);
+      axon_psqlExecute(&context);
+      if (context.error) free(context.error);
   );
 }
 
@@ -28,7 +29,7 @@ void ck_catchStderr(const char *newStream) {
   if (allMessages) return;
   if (stderrReplaced) return;
   stderrReplaced = 1;
-  koro_mkdir(logRoot);
+  axon_mkdir(logRoot);
   fflush(stderr);
   fgetpos(stderr, &stderrPos);
   stderrFD = dup(fileno(stderr));
@@ -51,7 +52,7 @@ void ck_catchStdout(const char *newStream) {
   if (allMessages) return;
   if (stdoutReplaced) return;
   stdoutReplaced = 1;
-  koro_mkdir(logRoot);
+  axon_mkdir(logRoot);
   fflush(stdout);
   fgetpos(stdout, &stdoutPos);
   stdoutFD = dup(fileno(stdout));
@@ -222,7 +223,7 @@ void _ck_make_dummy_sql(const char *name, const char *sql, long long int timesta
 }
 
 void ck_ensureDbEnv() {
-  koro_ensureStructure();
+  axon_ensureStructure();
   FILE *f;
 
   f = fopen("./src/db/init.c", "w+");
@@ -241,7 +242,7 @@ void ck_ensureDbEnv() {
   fprintf(f, "%s", INIT_HEADER_CONTENT);
   fclose(f);
 
-  koro_createConfig();
+  axon_createConfig();
 }
 
 void ck_releaseAll() {
