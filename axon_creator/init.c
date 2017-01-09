@@ -1,3 +1,5 @@
+#include <axon/db/init.h>
+
 const char *INIT_HEADER_CONTENT = "#pragma once\n\n"
     "#include <kore/kore.h>\n"
     "#include <kore/pgsql.h>\n"
@@ -138,3 +140,35 @@ const char *INIT_SOURCE_CONTENT = "#include \"./init.h\"\n"
     "  fclose(f);\n"
     "  return flavor;\n"
     "}\n";
+
+int axon_initCommand() {
+  int result = axon_ensureStructure();
+  if (result != AXON_SUCCESS) {
+    AXON_NO_SRC_DIRECTORY_MSG
+    return result;
+  }
+
+  if (axon_checkIO("./src/db/init.c") == 0) {
+    FILE *f = fopen("./src/db/init.c", "w+");
+    fprintf(f, "%s", INIT_SOURCE_CONTENT);
+    fclose(f);
+  }
+  if (axon_checkIO("./src/db/init.h") == 0) {
+    FILE *f = fopen("./src/db/init.h", "w+");
+    fprintf(f, "%s", INIT_HEADER_CONTENT);
+    fclose(f);
+  }
+
+  printf(
+      ""
+          "Please modify your conf/project.conf\n"
+          "  load    ./project.so db_init\n"
+  );
+
+  AxonGraph dbChildren[2] = {{.root="init.c",.len=0}, {.root="init.h",.len=0}};
+  AxonGraph srcChildren[1] = {{.root="db", .leafs=dbChildren,.len=2}};
+  AxonGraph axonGraph = {.root="src", .len=1, .leafs=srcChildren};
+  axon_createInfo(&axonGraph);
+
+  return AXON_SUCCESS;
+}

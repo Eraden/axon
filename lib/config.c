@@ -424,3 +424,9 @@ void axon_freeOrder(AxonOrder *order) {
 
   free(order);
 }
+
+char axon_isDatabaseInitExists(void) {
+  if (!axon_checkIO("src/db/init.h")) return 0;
+  if (!axon_checkIO("src/db/init.c")) return 0;
+  return 1;
+}

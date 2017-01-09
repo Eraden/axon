@@ -30,6 +30,7 @@ typedef struct sAxonOrder {
   size_t setupLen;
 } AxonOrder;
 
+#define AXON_NO_SRC_DIRECTORY_MSG fprintf(stderr, "No src directory in path!\n");
 #define AXON_NO_DB_CONFIG_FOR_ENV_MSG fprintf(stderr, "No database config file for current env!\n");
 #define AXON_NO_CONN_INFO fprintf(stderr, "No connection information!\n");
 #define AXON_DATABASE_CONFIG_FILE "./conf/database.yml"
@@ -54,3 +55,5 @@ void axon_freeOrder(AxonOrder *order);
 void axon_freeConfig(AxonConfig *config);
 
 char *axon_getFlavor(void);
+
+char axon_isDatabaseInitExists(void);

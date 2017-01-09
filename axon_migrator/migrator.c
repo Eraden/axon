@@ -1,0 +1,21 @@
+#include "migrator.h"
+
+int axon_runMigrator(int argc, char **argv) {
+  if (argc < 2 || axon_migrator_isInfo(argv[1])) {
+    axon_migrator_info();
+    return AXON_OPERATION_REQUIRED;
+  }
+
+  if (axon_isMigrate(argv[1])) {
+    return axon_migrate();
+  } else if (axon_isDatabaseCreate(argv[1])) {
+    return axon_createDatabase();
+  } else if (axon_isDatabaseDrop(argv[1])) {
+    return axon_dropDatabase();
+  } else if (axon_isSetup(argv[1])) {
+    return axon_setup();
+  } else {
+    axon_migrator_info();
+    return AXON_UNKNOWN_COMMAND;
+  }
+}

@@ -1,4 +1,5 @@
 #include <axon/utils.h>
+#include <axon/codes.h>
 
 static const u_int32_t AXON_LAST_LEAF = L'└';
 static const u_int32_t AXON_INTERSECTION_LEAF = L'├';
@@ -48,7 +49,10 @@ char axon_touch(const char *path) {
   return 1;
 }
 
-void axon_ensureStructure(void) {
+int axon_ensureStructure(void) {
+  if (axon_checkIO("./src") == 0)
+    return AXON_INVALID_DIRECTORY;
+
   axon_mkdir("./conf");
   axon_mkdir("./src");
   axon_mkdir("./src/db");
@@ -56,6 +60,8 @@ void axon_ensureStructure(void) {
   axon_mkdir("./db/migrate");
   axon_mkdir("./db/setup");
   axon_mkdir("./db/seed");
+
+  return AXON_SUCCESS;
 }
 
 static char *axon_cpyEnv(char *buffer, char *name) {
@@ -149,4 +155,23 @@ char *axon_readFile(const char *path) {
   munmap(p, (size_t) sb.st_size);
 
   return content;
+}
+
+int axon_runCommandArgv(const char *cmd, int since, int argc, char **argv) {
+  size_t len = strlen(cmd);
+  char *command = calloc(sizeof(char), len + 1);
+  strcat(command, cmd);
+
+  for (int i = 0; i < argc - since; i++) {
+    char *arg = argv[i + since];
+    if (arg == NULL) break;
+    len = len + strlen(arg) + 1;
+    command = realloc(command, sizeof(char) * (len + 1));
+    strcat(command, " ");
+    strcat(command, arg);
+    command[len] = 0;
+  }
+  int status = axon_runCommand(command);
+  free(command);
+  return status;
 }

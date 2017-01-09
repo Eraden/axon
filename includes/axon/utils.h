@@ -40,13 +40,15 @@ void axon_drawGraph(AxonGraph *axonGraph, size_t indent);
 
 char axon_checkIO(const char *path);
 
-void axon_ensureStructure(void);
+int axon_ensureStructure(void);
 
 char axon_touch(const char *path);
 
 char axon_mkdir(const char *path);
 
 int axon_runCommand(const char *cmd);
+
+int axon_runCommandArgv(const char *cmd, int since, int argc, char **argv);
 
 char *axon_getDatabaseName(void);
 

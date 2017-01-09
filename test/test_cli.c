@@ -1,31 +1,57 @@
 #include "test_cli.h"
 #include "./support/reset_environment.h"
 
+START_TEST(test_noArguments)
+  GO_TO_DUMMY
+  int result;
+
+  char *args[2] = {"inline", NULL};
+  ck_redirectStdout(result = axon_runCli(1, args);)
+  ck_assert_int_eq(result, AXON_OPERATION_REQUIRED);
+END_TEST
+
+START_TEST(test_invalidCliOperation)
+  GO_TO_DUMMY
+  int result;
+
+  char *args[2] = {"inline", "hello"};
+  ck_redirectStdout(result = axon_runCli(2, args);)
+  ck_assert_int_eq(result, AXON_UNKNOWN_COMMAND);
+END_TEST
+
+START_TEST(test_initFilesExists)
+  GO_TO_DUMMY
+  ck_unlink("./src/db");
+  ck_unlink("./log");
+  int result;
+
+  char *args[5] = {"inline", "db", "new", "enum", "states"};
+  ck_redirectStderr(result = axon_runCli(5, args);)
+  ck_assert_int_eq(result, AXON_NOT_INITIALIZED);
+  ck_path_contains("./log/error.info", "DB init does not exists! Type `axon db init` to create it");
+END_TEST
+
 START_TEST(test_invalidDirectory)
   GO_TO_DUMMY
   chdir("..");
-  int result;
-  char *args[4] = {"inline", "db", "init", NULL};
-  ck_redirectStderr(
-      result = axon_dbExec(4, args);
-  )
 
-  ck_assert_int_eq(result, AXON_FAILURE);
+  int result;
+
+  char *args[4] = {"inline", "db", "init", NULL};
+  ck_redirectStderr(result = axon_runCli(4, args);)
+  ck_assert_int_eq(result, AXON_INVALID_DIRECTORY);
   ck_path_contains(errorLogPath, "No src directory in path!");
   GO_TO_DUMMY
 END_TEST
 
-START_TEST(test_dbInit)
+START_TEST(test_initDatabaseConnectionFiles)
   GO_TO_DUMMY
   ck_unlink("./db");
   ck_unlink("./src/db");
   ck_unlink(AXON_MIGRATIONS_FILE);
 
   char *args[4] = {"inline", "db", "init", NULL};
-  ck_redirectStdout(
-      axon_dbExec(4, args);
-  )
-
+  ck_redirectStdout(axon_runCli(4, args);)
   ck_path_exists("./db");
   ck_path_exists("./db/setup");
   ck_path_exists("./db/migrate");
@@ -33,82 +59,81 @@ START_TEST(test_dbInit)
   ck_path_exists("./src/db");
   ck_path_exists("./src/db/init.h");
   ck_path_exists("./src/db/init.c");
-
   ck_path_contains("./src/db/init.h", "db_init");
   ck_path_contains("./src/db/init.c", "db_init");
 END_TEST
 
-START_TEST(test_unknownNew)
+START_TEST(test_newEnum)
   GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
   ck_unlink("./db");
-  ck_ensureDbEnv();
-  char *args[5] = {"inline", "db", "new", "enum", "states"};
+
   int result;
 
-  ck_redirectStdout(
-      result = axon_dbExec(5, args);
-  )
-  ck_assert_int_eq(result, AXON_FAILURE);
+  char *args[6] = {"inline", "db", "new", "enum", "states", "active"};
+  ck_redirectStdout(result = axon_runCli(6, args);)
+  ck_assert_int_eq(result, AXON_SUCCESS);
+END_TEST
+
+START_TEST(test_unknownNew)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  ck_unlink("./db");
+  int result;
+
+  char *args[5] = {"inline", "db", "new", "foo", "states"};
+  ck_redirectStdout(result = axon_runCli(5, args);)
+  ck_assert_int_eq(result, AXON_UNKNOWN_COMMAND);
 END_TEST
 
 START_TEST(test_newTable)
   GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
   ck_unlink("./db");
-  char *args[9] = {"inline", "db", "new", "table", "accounts", "id", "name", "age:int", "timestamps"};
-  int result;
 
-  ck_redirectStdout(
-      result = axon_dbExec(9, args);
-  )
+  int result = 0;
+
+  char *args[9] = {"inline", "db", "new", "table", "accounts", "id", "name", "age:int", "timestamps"};
+  ck_redirectStdout(result = axon_runCli(9, args);)
   ck_assert_int_eq(result, AXON_SUCCESS);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
   ck_assert_file_in("./db/migrate", "create_table_accounts.sql");
 END_TEST
 
-START_TEST(test_dbChange)
+START_TEST(test_changeTable)
   GO_TO_DUMMY
   ck_unlink("./db");
   char *path = NULL;
   int result;
 
   char *dropArgs[6] = {"inline", "db", "change", "accounts", "drop", "age:int"};
-
-  ck_redirectStdout(
-      result = axon_dbExec(6, dropArgs);
-  )
+  ck_redirectStdout(result = axon_runCli(6, dropArgs);)
   ck_assert_int_eq(result, AXON_SUCCESS);
-
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
-  ck_assert_file_in("./db/migrate", "change_table_accounts.sql");
+  ck_assert_file_in("./db/migrate", "drop_column_from_table_accounts.sql");
   path = ck_find_file_in("./db/migrate", "change_table_posts.sql");
   ck_path_contains(path, "ALTER TABLE posts DROP COLUMN age int;");
   free(path);
 
   ck_unlink("./db");
   char *addArgs[6] = {"inline", "db", "change", "posts", "add", "age:int"};
-
-  ck_redirectStdout(
-      result = axon_dbExec(6, addArgs);
-  )
+  ck_redirectStdout(result = axon_runCli(6, addArgs);)
   ck_assert_int_eq(result, AXON_SUCCESS);
-
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
-  ck_assert_file_in("./db/migrate", "change_table_posts.sql");
+  ck_assert_file_in("./db/migrate", "add_column_to_table_posts.sql");
   path = ck_find_file_in("./db/migrate", "change_table_posts.sql");
   ck_path_contains(path, "ALTER TABLE posts ADD COLUMN age int;");
   free(path);
 
   ck_unlink("./db");
   char *removeArgs[6] = {"inline", "db", "change", "posts", "remove", "age:int"};
-
   ck_redirectStderr(ck_redirectStdout(result = axon_dbExec(6, removeArgs)))
   ck_assert_int_eq(result, AXON_UNKNOWN_COMMAND);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
-  ck_path_contains("./log/error.log", "Unknown change operation 'remove'");
 END_TEST
 
 START_TEST(test_info)
@@ -130,20 +155,6 @@ START_TEST(test_isDB)
   ck_assert_int_eq(axon_isDB("other"), 0);
 END_TEST
 
-START_TEST(test_dbInitExists)
-  GO_TO_DUMMY
-  ck_unlink("./src/db");
-  ck_unlink("./log");
-  char *args[5] = {"inline", "db", "new", "enum", "states"};
-  int result;
-
-  ck_redirectStderr(
-      result = axon_dbExec(5, args);
-  )
-  ck_assert_int_eq(result, AXON_NOT_INITIALIZED);
-  ck_path_contains("./log/error.info", "DB init does not exists! Type `axon db init` to create it");
-END_TEST
-
 START_TEST(test_migrateDatabase)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
@@ -154,12 +165,12 @@ START_TEST(test_migrateDatabase)
   int result = 0;
 
   ck_redirectStdout(
-      result = axon_dbExec(3, args);
+      result = axon_runCli(3, args);
   )
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
-START_TEST(test_createDB)
+START_TEST(test_createDatabase)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
   ck_dropTestDb();
@@ -167,12 +178,12 @@ START_TEST(test_createDB)
   int result = 0;
 
   ck_redirectStdout(
-      result = axon_dbExec(3, args);
+      result = axon_runCli(3, args);
   )
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
-START_TEST(test_dropDB)
+START_TEST(test_dropDatabase)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
 
@@ -180,7 +191,7 @@ START_TEST(test_dropDB)
   int result = 0;
 
   ck_redirectStdout(
-      result = axon_dbExec(3, args);
+      result = axon_runCli(3, args);
   )
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
@@ -191,9 +202,9 @@ START_TEST(test_setupDatabase)
   char *args[3] = {"inline", "db", "setup"};
   int result = 0;
 
-//  ck_redirectStdout(
-      result = axon_dbExec(3, args);
-//  )
+  ck_redirectStdout(
+      result = axon_runCli(3, args);
+  )
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
@@ -206,24 +217,27 @@ START_TEST(test_unknownCmd)
   int result = 0;
 
   ck_redirectStdout(
-      result = axon_dbExec(3, args);
+      result = axon_runCli(3, args);
   )
   ck_assert_int_eq(result, AXON_UNKNOWN_COMMAND);
 END_TEST
 
 void test_cli(Suite *s) {
   TCase *testCaseDatabase = tcase_create("CLI");
+  tcase_add_test(testCaseDatabase, test_initFilesExists);
   tcase_add_test(testCaseDatabase, test_isDB);
-  tcase_add_test(testCaseDatabase, test_dbInitExists);
   tcase_add_test(testCaseDatabase, test_invalidDirectory);
   tcase_add_test(testCaseDatabase, test_unknownNew);
+  tcase_add_test(testCaseDatabase, test_newEnum);
   tcase_add_test(testCaseDatabase, test_info);
-  tcase_add_test(testCaseDatabase, test_dbInit);
+  tcase_add_test(testCaseDatabase, test_noArguments);
+  tcase_add_test(testCaseDatabase, test_invalidCliOperation);
+  tcase_add_test(testCaseDatabase, test_initDatabaseConnectionFiles);
   tcase_add_test(testCaseDatabase, test_newTable);
-  tcase_add_test(testCaseDatabase, test_dbChange);
+  tcase_add_test(testCaseDatabase, test_changeTable);
   tcase_add_test(testCaseDatabase, test_migrateDatabase);
-  tcase_add_test(testCaseDatabase, test_createDB);
-  tcase_add_test(testCaseDatabase, test_dropDB);
+  tcase_add_test(testCaseDatabase, test_createDatabase);
+  tcase_add_test(testCaseDatabase, test_dropDatabase);
   tcase_add_test(testCaseDatabase, test_setupDatabase);
   tcase_add_test(testCaseDatabase, test_unknownCmd);
   suite_add_tcase(s, testCaseDatabase);

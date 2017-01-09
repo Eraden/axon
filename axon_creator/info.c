@@ -1,6 +1,6 @@
 #include <axon/info.h>
 
-char axon_migrator_isInfo(const char *str) {
+char axon_creator_isInfo(const char *str) {
   if (strcmp(str, "info") == 0) return 1;
   if (strcmp(str, "--info") == 0) return 1;
   if (strcmp(str, "-i") == 0) return 1;
@@ -10,9 +10,9 @@ char axon_migrator_isInfo(const char *str) {
   return 0;
 }
 
-void axon_migrator_info() {
+void axon_creator_info() {
   printf(
-      AXON_MIGRATOR_INFO,
+      AXON_CREATOR_INFO,
       AXON_MAJOR_VERSION, AXON_MINOR_VERSION, AXON_PATCH_VERSION
   );
 }
