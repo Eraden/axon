@@ -1,15 +1,15 @@
-#include "axon/db.h"
+#include <axon/db.h>
 
 static char axon_isDbInitExists(void);
 
-static char axon_dbInit();
+static int axon_dbInit();
 
 static char axon_isDbInitExists(void) {
   char *fileName = "src/db/init.h";
   return axon_checkIO(fileName);
 }
 
-static char axon_dbInit() {
+static int axon_dbInit() {
   if (axon_checkIO("./src") == 0) {
     fprintf(stderr, "No src directory in path!\n");
     return AXON_FAILURE;
@@ -42,7 +42,7 @@ static char axon_dbInit() {
   return AXON_SUCCESS;
 }
 
-static char axon_dbNew(int argc, char **argv) {
+static int axon_dbNew(int argc, char **argv) {
   if (argc < 4) return 0;
   const char *type = argv[3];
 
@@ -57,13 +57,13 @@ char axon_isDB(const char *str) {
   return strcmp(str, "db") == 0;
 }
 
-char axon_dbExec(int argc, char **argv) {
+int axon_dbExec(int argc, char **argv) {
   if (argc < 2) return 0;
   const char *op = argv[2];
 
   if (strcmp(op, "init") != 0 && axon_isDbInitExists() == 0) {
     fprintf(stderr, "DB init does not exists! Type `axon db init` to create it\n");
-    return AXON_FAILURE;
+    return AXON_NOT_INITIALIZED;
   } else if (strcmp(op, "init") == 0) {
     return axon_dbInit();
   } else if (strcmp(op, "new") == 0) {
@@ -71,13 +71,13 @@ char axon_dbExec(int argc, char **argv) {
   } else if (strcmp(op, "change") == 0) {
     return axon_dbChange(argc, argv);
   } else if (strcmp(op, "migrate") == 0) {
-    return (char) axon_runCommand("axon-migrator migrate");
+    return axon_runCommand("axon-migrator migrate");
   } else if (strcmp(op, "create") == 0) {
-    return (char) axon_runCommand("axon-migrator create");
+    return axon_runCommand("axon-migrator create");
   } else if (strcmp(op, "drop") == 0) {
-    return (char) axon_runCommand("axon-migrator drop");
+    return axon_runCommand("axon-migrator drop");
   } else if (strcmp(op, "setup") == 0) {
-    return (char) axon_runCommand("axon-migrator setup");
+    return axon_runCommand("axon-migrator setup");
   } else {
     return AXON_UNKNOWN_COMMAND;
   }

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <libpq-fe.h>
-#include "axon/config.h"
-#include "axon/utils.h"
-#include "axon/codes.h"
+#include <axon/config.h>
+#include <axon/utils.h>
+#include <axon/codes.h>
 
 #define AXON_EXECUTE_SQL_BUFFER_SIZE 1024
 #define AXON_CONN_INFO_SIZE 128

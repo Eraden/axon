@@ -105,7 +105,7 @@ START_TEST(test_dbChange)
   char *removeArgs[6] = {"inline", "db", "change", "posts", "remove", "age:int"};
 
   ck_redirectStderr(ck_redirectStdout(result = axon_dbExec(6, removeArgs)))
-  ck_assert_int_eq(result, AXON_FAILURE);
+  ck_assert_int_eq(result, AXON_UNKNOWN_COMMAND);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
   ck_path_contains("./log/error.log", "Unknown change operation 'remove'");
@@ -140,7 +140,7 @@ START_TEST(test_dbInitExists)
   ck_redirectStderr(
       result = axon_dbExec(5, args);
   )
-  ck_assert_int_eq(result, AXON_FAILURE);
+  ck_assert_int_eq(result, AXON_NOT_INITIALIZED);
   ck_path_contains("./log/error.info", "DB init does not exists! Type `axon db init` to create it");
 END_TEST
 
@@ -191,9 +191,9 @@ START_TEST(test_setupDatabase)
   char *args[3] = {"inline", "db", "setup"};
   int result = 0;
 
-  ck_redirectStdout(
+//  ck_redirectStdout(
       result = axon_dbExec(3, args);
-  )
+//  )
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 

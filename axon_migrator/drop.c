@@ -1,4 +1,4 @@
-#include "axon/db/drop.h"
+#include <axon/db/drop.h>
 
 char axon_isDatabaseDrop(char *str) {
   return str && strcmp(str, "drop") == 0;

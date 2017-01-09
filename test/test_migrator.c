@@ -150,7 +150,7 @@ START_TEST(test_invalidMigrate)
   ck_make_dummy_sql("third", "CREATE TABLE third(id serial)", now + 3);
   ck_make_dummy_sql("fourth", "CREATE TABLE fourth(id serial)", now + 4);
   ck_redirectStderr(result = axon_migrate();)
-  ck_assert_int_eq(result, AXON_FAILURE);
+  ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
   ck_path_contains("./log/error.log", "aborting (all changes will be reversed)...");
 END_TEST
 
@@ -198,12 +198,26 @@ START_TEST(test_isSetup)
   ck_assert_int_eq(axon_isSetup("set"), 0);
 END_TEST
 
+START_TEST(test_isInfo)
+  GO_TO_DUMMY
+  ck_assert_int_eq(axon_migrator_isInfo("info"), 1);
+  ck_assert_int_eq(axon_migrator_isInfo("--info"), 1);
+  ck_assert_int_eq(axon_migrator_isInfo("-i"), 1);
+  ck_assert_int_eq(axon_migrator_isInfo("help"), 1);
+  ck_assert_int_eq(axon_migrator_isInfo("--help"), 1);
+  ck_assert_int_eq(axon_migrator_isInfo("-h"), 1);
+  ck_assert_int_eq(axon_migrator_isInfo("set"), 0);
+END_TEST
+
 START_TEST(test_axonSetup)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
   axon_createConfig();
 
   int result;
+  ck_unlink("db/order.yml");
+  result = axon_setup();
+  ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_overrideFile("db/order.yml", "setup:\n  - one.sql\n  - two.sql\n  tree.sql\n");
   ck_overrideFile("db/setup/one.sql", "CREATE TABLE test1(id serial);");
@@ -219,7 +233,7 @@ START_TEST(test_axonSetup)
 
   ck_overrideFile("db/order.yml", "setup:\n  - five.sql\n");
   result = axon_setup();
-  ck_assert_int_eq(result, AXON_FAILURE);
+  ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
 END_TEST
 
 START_TEST(test_sequence)
@@ -257,6 +271,7 @@ END_TEST
 
 void test_migrator(Suite *s) {
   TCase *testCaseDatabase = tcase_create("Migrator");
+  tcase_add_test(testCaseDatabase, test_isInfo);
   tcase_add_test(testCaseDatabase, test_migrateWithPerformed);
   tcase_add_test(testCaseDatabase, test_migrateWithoutDirectory);
   tcase_add_test(testCaseDatabase, test_migratorCreateDatabase);

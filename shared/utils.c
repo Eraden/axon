@@ -1,4 +1,4 @@
-#include "axon/utils.h"
+#include <axon/utils.h>
 
 static const u_int32_t AXON_LAST_LEAF = L'└';
 static const u_int32_t AXON_INTERSECTION_LEAF = L'├';
@@ -121,7 +121,7 @@ char *axon_getDatabaseName() {
   free(env);
   if (envConfig == NULL) {
     axon_freeConfig(config);
-    NO_DB_CONFIG_FOR_ENV_MSG
+    AXON_NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 

@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#include "axon/config.h"
+#include <axon/config.h>
 
 #define AXON_COLOR_NRM  "\x1B[0m"
 #define AXON_COLOR_RED  "\x1B[31m"

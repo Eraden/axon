@@ -32,6 +32,7 @@ _prepare_clear_state(void) {
   ck_unlink("./db");
   ck_unlink("./src/db");
   ck_unlink("./conf/database.yml");
+  ck_unlink("./db/order.yml");
 
   ck_redirectStdout(
       ck_redirectStderr(

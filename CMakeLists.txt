@@ -44,6 +44,7 @@ SET(
     AXON_MIGRATOR_SOURCE_FILES
     axon_migrator/db/exec.c
     axon_migrator/db/exec_sequence.c
+    axon_migrator/info.c
     axon_migrator/migrate.c
     axon_migrator/create.c
     axon_migrator/drop.c
@@ -114,3 +115,11 @@ TARGET_LINK_LIBRARIES(
     ${CHECK_LIBRARIES}
     ${LIBS} -ldl gcov
 )
+
+INSTALL(
+    TARGETS axon axon-migrator axonconfig axonutils
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib/static
+)
+INSTALL(DIRECTORY includes DESTINATION include FILES_MATCHING PATTERN "*.h")

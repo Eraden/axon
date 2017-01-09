@@ -15,7 +15,7 @@ static int axon_beginSequence(AxonSequence *axonSequence) {
   /* LCOV_EXCL_START */
   if (axonSequence->axonExecContext.error) {
     axon_markAsFailure(axonSequence);
-    return AXON_FAILURE;
+    return AXON_SEQ_BEGIN_TRANSACTION_FAILED;
   }
   /* LCOV_EXCL_STOP */
   return AXON_SUCCESS;
@@ -30,10 +30,10 @@ static int axon_endSequence(AxonSequence *axonSequence) {
   /* LCOV_EXCL_START */
   if (axonSequence->axonExecContext.error) {
     axon_markAsFailure(axonSequence);
-    return AXON_FAILURE;
+    return AXON_SEQ_END_TRANSACTION_FAILED;
   }
   /* LCOV_EXCL_STOP */
-  return axonSequence->status == AXON_EXEC_STATUS_OK ? AXON_SUCCESS : AXON_FAILURE;
+  return axonSequence->status == AXON_EXEC_STATUS_OK ? AXON_SUCCESS : AXON_SEQ_END_TRANSACTION_FAILED;
 }
 
 static int axon_runFile(AxonSequence *axonSequence, char *filePath) {
@@ -47,8 +47,10 @@ static int axon_runFile(AxonSequence *axonSequence, char *filePath) {
     fprintf(stderr, "  aborting (all changes will be reversed)...\n\n%s[SQL]%s %s\n", AXON_COLOR_CYN, AXON_COLOR_NRM,
             sql);
     axon_markAsFailure(axonSequence);
+    result = AXON_SEQ_INVALID_FILE;
   } else {
     fprintf(stdout, "%-90s %s[OK]%s\n", filePath, AXON_COLOR_GRN, AXON_COLOR_NRM);
+    result = AXON_SUCCESS;
   }
   free(sql);
   return result;
@@ -58,7 +60,12 @@ int axon_execSequence(AxonSequence *axonSequence) {
   char *connInfo = axonSequence->axonExecContext.connInfo ?
                    axonSequence->axonExecContext.connInfo :
                    axon_getConnectionInfo();
-  if (connInfo == NULL) return AXON_FAILURE; /* LCOV_EXCL_LINE */
+  /* LCOV_EXCL_START */
+  if (connInfo == NULL) {
+    AXON_NO_CONN_INFO
+    return AXON_CONFIG_MISSING;
+  }
+  /* LCOV_EXCL_STOP */
 
   int result = axon_beginSequence(axonSequence);
   if (result != AXON_SUCCESS) return result;
@@ -70,7 +77,8 @@ int axon_execSequence(AxonSequence *axonSequence) {
     files += 1;
   }
 
-  return axon_endSequence(axonSequence);
+  int endResult = axon_endSequence(axonSequence);
+  return result == AXON_SUCCESS ? endResult : result;
 }
 
 AxonSequence *axon_getSequence(char *connInfo, char **files, size_t len) {

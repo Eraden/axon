@@ -1,4 +1,4 @@
-#include "axon/db/exec.h"
+#include <axon/db/exec.h>
 
 AxonExecContext axon_getContext(char *sql, char *connInfo, AxonExecType type) {
   AxonExecContext context;
@@ -17,7 +17,7 @@ char *axon_getConnectionInfo() {
   free(env);
   if (envConfig == NULL) {
     axon_freeConfig(config);
-    NO_DB_CONFIG_FOR_ENV_MSG
+    AXON_NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 

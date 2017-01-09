@@ -1,4 +1,4 @@
-#include "axon/db/setup.h"
+#include <axon/db/setup.h>
 
 char axon_isSetup(char *str) {
   return strcmp(str, "setup") == 0;
@@ -6,9 +6,13 @@ char axon_isSetup(char *str) {
 
 int axon_setup() {
   char *connInfo = axon_getConnectionInfo();
-  if (connInfo == NULL) return AXON_FAILURE;
+  if (connInfo == NULL) return AXON_NO_CONN_INFO;
   AxonOrder *axonOrder = axon_readOrder();
-  if (axonOrder->setupFiles == NULL) return AXON_FAILURE;
+  if (axonOrder == NULL || axonOrder->setupFiles == NULL) {
+    free(connInfo);
+    fprintf(stdout, "%sNothing to do or order malformed!%s\n", AXON_COLOR_MAG, AXON_COLOR_NRM);
+    return AXON_SUCCESS;
+  }
   char **files = axonOrder->setupFiles;
   size_t len = 0;
   char **sequenceFiles = NULL;
@@ -19,7 +23,7 @@ int axon_setup() {
     strcat(path, AXON_SETUP_FILES_DIRECTORY);
     strcat(path, file);
     if (axon_checkIO(path) == 0) {
-      fprintf(stderr, "%-90s %s[NOT EXISTS]%s\n", path, AXON_COLOR_YEL, AXON_COLOR_NRM);
+      fprintf(stdout, "%-90s %s[NOT EXISTS]%s\n", path, AXON_COLOR_YEL, AXON_COLOR_NRM);
       free(path);
     } else {
       len += 1;
@@ -45,6 +49,5 @@ int axon_setup() {
     ptr += 1;
   }
   if (sequenceFiles) free(sequenceFiles);
-
   return result;
 }

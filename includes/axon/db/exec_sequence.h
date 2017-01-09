@@ -1,6 +1,6 @@
 #pragma once
 
-#include "axon/db/exec.h"
+#include <axon/db/exec.h>
 
 typedef enum eAxonExecStatus {
   AXON_EXEC_STATUS_OK,

@@ -1,5 +1,5 @@
 #include <yaml.h>
-#include "axon/config.h"
+#include <axon/config.h>
 
 void axon_createConfig(void) {
   axon_ensureStructure();

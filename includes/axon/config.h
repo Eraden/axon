@@ -1,6 +1,6 @@
 #pragma once
 
-#include "axon/utils.h"
+#include <axon/utils.h>
 
 #include <yaml.h>
 
@@ -30,7 +30,8 @@ typedef struct sAxonOrder {
   size_t setupLen;
 } AxonOrder;
 
-#define NO_DB_CONFIG_FOR_ENV_MSG fprintf(stderr, "No database config file for current env!\n");
+#define AXON_NO_DB_CONFIG_FOR_ENV_MSG fprintf(stderr, "No database config file for current env!\n");
+#define AXON_NO_CONN_INFO fprintf(stderr, "No connection information!\n");
 #define AXON_DATABASE_CONFIG_FILE "./conf/database.yml"
 #define AXON_ORDER_CONFIG_FILE "./db/order.yml"
 
