@@ -3,6 +3,7 @@
 
 [![CircleCI](https://circleci.com/gh/Eraden/axon/tree/master.svg?style=svg&circle-token=beb41b70d3092e2fd7d64a3989d1ea3de7bfe520)](https://circleci.com/gh/Eraden/axon/tree/master)
 [![codecov](https://codecov.io/gh/Eraden/axon/branch/master/graph/badge.svg)](https://codecov.io/gh/Eraden/axon)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./License.md)
 
 axon is database migration manager. It can create SQL migration files with timestamp (which you can edit),
 execute them and skip every already executed file.
