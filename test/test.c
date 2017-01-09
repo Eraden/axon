@@ -3,6 +3,7 @@
 #include "test_cli.h"
 #include "test_migrator.h"
 #include "test_utils.h"
+#include "test_creator.h"
 
 int main(int argc, char **argv) {
   setlocale(LC_ALL, "");
@@ -24,6 +25,7 @@ int main(int argc, char **argv) {
   test_config(s);
   test_utils(s);
   test_cli(s);
+  test_creator(s);
   test_migrator(s);
 
   srunner_run_all(sr, CK_SILENT);

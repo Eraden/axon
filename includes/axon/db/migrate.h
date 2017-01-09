@@ -3,6 +3,7 @@
 #include <axon/utils.h>
 #include <axon/db/exec.h>
 #include <axon/db/exec_sequence.h>
+#include <axon/db/write.h>
 
 typedef struct sAxonMigration {
   int timestamp;
@@ -15,7 +16,6 @@ typedef struct sAxonMigratorContext {
   AxonMigration **migrations;
 } AxonMigratorContext;
 
-#define AXON_MIGRATIONS_FILE "./.migrations"
 
 AxonMigratorContext *axon_loadMigrations(void);
 

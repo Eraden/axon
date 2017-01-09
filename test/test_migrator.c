@@ -1,5 +1,21 @@
 #include "test_migrator.h"
 
+START_TEST(test_noArgs)
+  GO_TO_DUMMY
+  int result = 0;
+  char *args[1] = {"inline"};
+  ck_redirectStdout(result = axon_runMigrator(1, args);)
+  ck_assert_int_eq(result, AXON_OPERATION_REQUIRED);
+END_TEST
+
+START_TEST(test_unknownOperation)
+  GO_TO_DUMMY
+  int result = 0;
+  char *args[2] = {"inline", "foo"};
+  ck_redirectStdout(result = axon_runMigrator(2, args);)
+  ck_assert_int_eq(result, AXON_UNKNOWN_COMMAND);
+END_TEST
+
 START_TEST(test_migratorMigrate)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
@@ -271,6 +287,8 @@ END_TEST
 
 void test_migrator(Suite *s) {
   TCase *testCaseDatabase = tcase_create("Migrator");
+  tcase_add_test(testCaseDatabase, test_noArgs);
+  tcase_add_test(testCaseDatabase, test_unknownOperation);
   tcase_add_test(testCaseDatabase, test_isInfo);
   tcase_add_test(testCaseDatabase, test_migrateWithPerformed);
   tcase_add_test(testCaseDatabase, test_migrateWithoutDirectory);

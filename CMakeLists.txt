@@ -36,8 +36,18 @@ SET(
     AXON_SOURCE_FILES
     cli/info.c
     cli/db.c
-    cli/db/table.c
-    cli/db/init.c
+    cli/cli.c
+)
+
+SET(
+    AXON_CREATOR_SOURCE_FILES
+    axon_creator/info.c
+    axon_creator/write.c
+    axon_creator/init.c
+    axon_creator/column.c
+    axon_creator/table.c
+    axon_creator/enum.c
+    axon_creator/creator.c
 )
 
 SET(
@@ -49,17 +59,20 @@ SET(
     axon_migrator/create.c
     axon_migrator/drop.c
     axon_migrator/setup.c
+    axon_migrator/migrator.c
 )
 
 SET(
     TEST_SOURCE_FILES
     ${AXON_SOURCE_FILES}
+    ${AXON_CREATOR_SOURCE_FILES}
     ${AXON_MIGRATOR_SOURCE_FILES}
     test/support/ck_io.c
     test/support/prepare.c
-    cli/db/init.c
+    axon_creator/init.c
     test/test_cli.c
     test/test_migrator.c
+    test/test_creator.c
     test/test_config.c
     test/test_utils.c
     test/support/reset_environment.c
@@ -67,10 +80,11 @@ SET(
 
 ADD_EXECUTABLE(axon ${AXON_SOURCE_FILES} cli/main.c)
 ADD_EXECUTABLE(axon-migrator ${AXON_MIGRATOR_SOURCE_FILES} axon_migrator/main.c)
+ADD_EXECUTABLE(axon-creator ${AXON_CREATOR_SOURCE_FILES} axon_creator/main.c)
 ADD_EXECUTABLE(axon_test ${TEST_SOURCE_FILES} test/test.c)
 
-ADD_LIBRARY(axonutils shared/utils.c)
-ADD_LIBRARY(axonconfig shared/utils.c shared/config.c)
+ADD_LIBRARY(axonutils lib/utils.c)
+ADD_LIBRARY(axonconfig lib/utils.c lib/config.c)
 
 SET(
     LIBS
@@ -111,13 +125,18 @@ TARGET_LINK_LIBRARIES(
 )
 
 TARGET_LINK_LIBRARIES(
+    axon-creator
+    ${LIBS}
+)
+
+TARGET_LINK_LIBRARIES(
     axon_test
     ${CHECK_LIBRARIES}
     ${LIBS} -ldl gcov
 )
 
 INSTALL(
-    TARGETS axon axon-migrator axonconfig axonutils
+    TARGETS axon axon-migrator axon-creator axonconfig axonutils
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib/static

@@ -4,7 +4,6 @@
 [![CircleCI](https://circleci.com/gh/Eraden/axon/tree/master.svg?style=svg&circle-token=beb41b70d3092e2fd7d64a3989d1ea3de7bfe520)](https://circleci.com/gh/Eraden/axon/tree/master)
 [![codecov](https://codecov.io/gh/Eraden/axon/branch/master/graph/badge.svg)](https://codecov.io/gh/Eraden/axon)
 
-
 axon is database migration manager. It can create SQL migration files with timestamp (which you can edit),
 execute them and skip every already executed file.
 
@@ -38,14 +37,33 @@ They will not be overridden so you can safety change them.
 
 ```bash
 axon db new table accounts id login pass last_logged:timestamp timestamps
+axon db drop table accounts
+axon db rename table accounts users
+axon db new enum colors green yellow blue
+axon db drop enum colors
 axon db change accounts drop last_logged
 axon db change accounts add age:int
+axon db change accounts retype age:int
+```
+
+## Creator
+
+Axon is delivered with `axon-creator` which handle file generating.
+
+```bash
+axon-creator new table accounts id login pass last_logged:timestamp timestamps
+axon-creator drop table accounts
+axon-creator rename table users accounts
+axon-creator new enum colors green yellow blue
+axon-creator drop enum colors
+axon-creator change accounts drop last_logged
+axon-creator change accounts add age:int
+axon-creator change accounts retype login:text
 ```
 
 ## Migrator
 
 Axon is delivered with `axon-migrator` which handle all psql connections and sql executions.
-`axon` for all those functionalities just call `axon-migrator`. You also can use it directly.
 
 ```bash
 axon-migrator create
@@ -112,23 +130,30 @@ Every not included file will be ignored as well as entry with non-existing files
 
 ## Implementation
 
-- [x] Creating new table SQL
-- [x] Creating add column SQL
-- [x] Creating drop column SQL
-- [x] Executing migration in transaction
+### Generating SQL
+
+- [x] Creating new table
+- [x] Creating drop table
+- [x] Creating add column
+- [x] Creating drop column
+- [x] Creating new enum
+- [x] Creating drop enum
+- [x] Creating change type for column
+
+### Execute
+
 - [x] Create database
 - [x] Drop database
+- [x] Executing migration in transaction
 - [x] Skip already executed files
 - [x] Using setup `axon db setup` for setup database before `db migrate`
 
-Couple functionalities are missing right now, calling:
+### TODO
 
-- [ ] Creating change type for column SQL
 - [ ] Support for `REFERENCES`
 - [ ] Using seeds `axon db seed`
 - [ ] Before migration code execution
 - [ ] After migration code execution
-- [ ] Extract creating files from `axon` to `axon-creator`
 
 ## Pre-requirements
 
