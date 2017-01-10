@@ -10,11 +10,6 @@ static void axon_appendColumn(AxonTableData *table, AxonColumnData *column) {
 
 int axon_newTable(int argc, char **argv) {
   if (argc < 4) return AXON_NOT_ENOUGH_ARGS;
-  int result = axon_ensureStructure();
-  if (result != AXON_SUCCESS) {
-    AXON_NO_SRC_DIRECTORY_MSG
-    return result;
-  }
 
   const char *name = argv[3];
   AxonTableData table;

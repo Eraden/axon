@@ -12,11 +12,7 @@ static void axon_freeAxonEnum(AxonEnum *axonEnum) {
 
 int axon_newEnum(int argc, char **argv) {
   if (argc < 5) return AXON_NOT_ENOUGH_ARGS;
-  int result = axon_ensureStructure();
-  if (result != AXON_SUCCESS) {
-    AXON_NO_SRC_DIRECTORY_MSG
-    return result;
-  }
+
   const char *name = argv[3];
   AxonEnum axonEnum;
   axonEnum.values = NULL;

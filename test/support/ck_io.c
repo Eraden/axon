@@ -130,33 +130,32 @@ char *_ck_findFile(const char *dir, const char *pattern) {
 
   if (!d) return path;
 
-  struct dirent *p;
-
-  int r = 0;
-
-  while (!r && (p = readdir(d))) {
-    int r2 = -1;
+  struct dirent *p = readdir(d);
+  while (p) {
     char *buf = NULL;
     size_t len;
 
     /* Skip the names "." and ".." as we don't want to recurse on them. */
     if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
+      p = readdir(d);
       continue;
     }
 
     len = pathLen + strlen(p->d_name) + 2;
-    buf = malloc(len);
+    buf = calloc(sizeof(char), len);
 
-    if (buf) {
-      struct stat statBuf;
-      snprintf(buf, len, "%s/%s", dir, p->d_name);
-      if (!stat(buf, &statBuf) && S_ISREG(statBuf.st_mode) && strstr(p->d_name, pattern)) {
-        path = buf;
-      } else {
-        free(buf);
-      }
+    if (buf == NULL) break;
+
+    struct stat statBuf;
+    snprintf(buf, len, "%s/%s", dir, p->d_name);
+    char isFile = !stat(buf, &statBuf) && S_ISREG(statBuf.st_mode);
+    if (isFile && strstr(p->d_name, pattern)) {
+      path = buf;
+      break;
+    } else {
+      free(buf);
+      p = readdir(d);
     }
-    r = r2;
   }
 
   closedir(d);

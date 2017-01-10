@@ -25,11 +25,14 @@ INCLUDE_DIRECTORIES(${PostgreSQL_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${LIBYAML_INCLUDE_DIR})
 
 ADD_DEFINITIONS(-Wall)
-IF (CMAKE_C_COMPILER MATCHES "clang")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fsanitize=address -fno-omit-frame-pointer")
-ELSE ()
-  MESSAGE(INFO " No memory tests will be performed!")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -ldl -coverage")
+IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+  ADD_DEFINITIONS(-Wall -DAXON_LOCAL_TEST)
+  IF (CMAKE_C_COMPILER MATCHES "clang")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fsanitize=address -fno-omit-frame-pointer")
+  ELSE ()
+    MESSAGE(INFO " No memory tests will be performed!")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -ldl -coverage")
+  ENDIF ()
 ENDIF ()
 
 SET(
@@ -63,10 +66,16 @@ SET(
 )
 
 SET(
+    AXON_COMPILER_SOURCE_FILES
+    axon_compiler/compiler.c
+)
+
+SET(
     TEST_SOURCE_FILES
     ${AXON_SOURCE_FILES}
     ${AXON_CREATOR_SOURCE_FILES}
     ${AXON_MIGRATOR_SOURCE_FILES}
+    ${AXON_COMPILER_SOURCE_FILES}
     test/support/ck_io.c
     test/support/prepare.c
     axon_creator/init.c
@@ -75,12 +84,14 @@ SET(
     test/test_creator.c
     test/test_config.c
     test/test_utils.c
+    test/test_compiler.c
     test/support/reset_environment.c
 )
 
 ADD_EXECUTABLE(axon ${AXON_SOURCE_FILES} cli/main.c)
 ADD_EXECUTABLE(axon-migrator ${AXON_MIGRATOR_SOURCE_FILES} axon_migrator/main.c)
 ADD_EXECUTABLE(axon-creator ${AXON_CREATOR_SOURCE_FILES} axon_creator/main.c)
+ADD_EXECUTABLE(axon-compiler ${AXON_COMPILER_SOURCE_FILES} axon_compiler/main.c)
 ADD_EXECUTABLE(axon_test ${TEST_SOURCE_FILES} test/test.c)
 
 ADD_LIBRARY(axonutils lib/utils.c)
@@ -126,6 +137,11 @@ TARGET_LINK_LIBRARIES(
 
 TARGET_LINK_LIBRARIES(
     axon-creator
+    ${LIBS}
+)
+
+TARGET_LINK_LIBRARIES(
+    axon-compiler
     ${LIBS}
 )
 

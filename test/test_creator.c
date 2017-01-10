@@ -76,13 +76,16 @@ START_TEST(test_newTable)
   IN_CLEAR_STATE(/* */)
   int result;
 
+  ck_unlink("./db");
   char *args[8] = {"inline", "new", "table", "accounts", "id", "name", "age:int", "timestamps"};
   ck_redirectStdout(result = axon_runCreator(8, args);)
   ck_assert_int_eq(result, AXON_SUCCESS);
   char *path = ck_find_file_in("./db/migrate", "create_table_accounts.sql");
   ck_assert_ptr_ne(path, NULL);
-  ck_path_contains(path,
-                   "CREATE TABLE accounts (\n  id serial,\n  name varchar,\n  age int,\n  updated_at timestamp,\n  created_at timestamp\n);\n");
+  ck_path_contains(
+      path,
+      "CREATE TABLE accounts (\n  id serial,\n  name varchar,\n  age int,\n  updated_at timestamp,\n  created_at timestamp\n);\n"
+  );
   free(path);
 
   char *notEnoughArgs[3] = {"inline", "new", "table"};
@@ -100,6 +103,7 @@ START_TEST(test_dropTable)
   IN_CLEAR_STATE(/* */)
   int result;
 
+  ck_unlink("./db");
   char *args[4] = {"inline", "drop", "table", "accounts"};
   ck_redirectStderr(result = axon_runCreator(4, args);)
   ck_assert_int_eq(result, AXON_SUCCESS);
@@ -123,6 +127,7 @@ START_TEST(test_renameTable)
   IN_CLEAR_STATE(/* */)
   int result;
 
+  ck_unlink("./db");
   char *args[5] = {"inline", "rename", "table", "users", "accounts"};
   ck_redirectStderr(result = axon_runCreator(5, args);)
   ck_assert_int_eq(result, AXON_SUCCESS);
@@ -146,6 +151,7 @@ START_TEST(test_newEnum)
   IN_CLEAR_STATE(/* */)
   int result;
 
+  ck_unlink("./db");
   char *args[8] = {"inline", "new", "enum", "colors", "yellow", "blue", "red", "black"};
   ck_redirectStdout(result = axon_runCreator(8, args);)
   ck_assert_int_eq(result, AXON_SUCCESS);
@@ -171,6 +177,7 @@ START_TEST(test_dropEnum)
   IN_CLEAR_STATE(/* */)
   int result;
 
+  ck_unlink("./db");
   char *args[4] = {"inline", "drop", "enum", "colors"};
   ck_redirectStdout(result = axon_runCreator(4, args);)
   ck_assert_int_eq(result, AXON_SUCCESS);
@@ -203,9 +210,9 @@ START_TEST(test_changeTable)
   ck_assert_int_eq(result, AXON_SUCCESS);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
-  ck_assert_file_in("./db/migrate", "drop_column_from_table_accounts.sql");
-  path = ck_find_file_in("./db/migrate", "change_table_posts.sql");
-  ck_path_contains(path, "ALTER TABLE posts DROP COLUMN age int;");
+  path = ck_find_file_in("./db/migrate", "drop_column_from_table_accounts.sql");
+  ck_assert_ptr_ne(path, NULL);
+  ck_path_contains(path, "ALTER TABLE accounts DROP COLUMN age;");
   free(path);
 
   ck_unlink("./db");
@@ -214,8 +221,8 @@ START_TEST(test_changeTable)
   ck_assert_int_eq(result, AXON_SUCCESS);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
-  ck_assert_file_in("./db/migrate", "add_column_to_table_posts.sql");
-  path = ck_find_file_in("./db/migrate", "add_column_to_posts.sql");
+  path = ck_find_file_in("./db/migrate", "add_column_to_table_posts.sql");
+  ck_assert_ptr_ne(path, NULL);
   ck_path_contains(path, "ALTER TABLE posts ADD COLUMN age int;");
   free(path);
 
@@ -225,8 +232,8 @@ START_TEST(test_changeTable)
   ck_assert_int_eq(result, AXON_SUCCESS);
   ck_path_exists("./db");
   ck_path_exists("./db/migrate");
-  ck_assert_file_in("./db/migrate", "change_column_type_posts.sql");
   path = ck_find_file_in("./db/migrate", "change_column_type_posts.sql");
+  ck_assert_ptr_ne(path, NULL);
   ck_path_contains(path, "ALTER TABLE posts ALTER COLUMN age TYPE int;");
   free(path);
 

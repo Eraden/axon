@@ -8,6 +8,5 @@ typedef struct sAxonCallbackData {
   char *sql;
   size_t len;
   int flags;
-};
+} AxonCallbackData;
 
-int axon_buildTriggers(void);
