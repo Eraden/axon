@@ -12,22 +12,22 @@ AxonExecContext axon_getContext(char *sql, char *connInfo, AxonExecType type) {
 
 char *axon_getConnectionInfo() {
   char *env = axon_getFlavor();
-  AxonConfig *config = axon_readConfig();
-  AxonEnvironmentConfig *envConfig = axon_findEnvConfig(config, env);
+  AxonConfig *config = axon_readDatabaseConfig();
+  AxonEnvironmentConfig *envConfig = axon_findEnvDatabaseConfig(config, env);
   free(env);
   if (envConfig == NULL) {
-    axon_freeConfig(config);
+    axon_freeDatabaseConfig(config);
     AXON_NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 
   char *connInfo = axon_connectionInfo(envConfig);
   if (connInfo == NULL) {
-    axon_freeConfig(config);
+    axon_freeDatabaseConfig(config);
     return NULL;
   }
 
-  axon_freeConfig(config);
+  axon_freeDatabaseConfig(config);
   return connInfo;
 }
 

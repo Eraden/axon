@@ -71,11 +71,21 @@ SET(
 )
 
 SET(
+    AXON_CONFIG_SOURCE_FILES
+    lib/utils.c
+    lib/database_config.c
+    lib/order_config.c
+    lib/triggers_config.c
+    lib/config.c
+)
+
+SET(
     TEST_SOURCE_FILES
     ${AXON_SOURCE_FILES}
     ${AXON_CREATOR_SOURCE_FILES}
     ${AXON_MIGRATOR_SOURCE_FILES}
     ${AXON_COMPILER_SOURCE_FILES}
+    ${AXON_CONFIG_SOURCE_FILES}
     test/support/ck_io.c
     test/support/prepare.c
     axon_creator/init.c
@@ -95,7 +105,7 @@ ADD_EXECUTABLE(axon-compiler ${AXON_COMPILER_SOURCE_FILES} axon_compiler/main.c)
 ADD_EXECUTABLE(axon_test ${TEST_SOURCE_FILES} test/test.c)
 
 ADD_LIBRARY(axonutils lib/utils.c)
-ADD_LIBRARY(axonconfig lib/utils.c lib/config.c)
+ADD_LIBRARY(axonconfig ${AXON_CONFIG_SOURCE_FILES})
 
 SET(
     LIBS
@@ -113,6 +123,18 @@ if (CMAKE_C_COMPILER MATCHES "gcc")
 endif ()
 
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/includes DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+ADD_CUSTOM_COMMAND(
+    TARGET axonutils
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:axonutils> ${CMAKE_CURRENT_BINARY_DIR}/lib
+)
+ADD_CUSTOM_COMMAND(
+    TARGET axonconfig
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:axonconfig> ${CMAKE_CURRENT_BINARY_DIR}/lib
+)
 
 TARGET_LINK_LIBRARIES(
     axonutils

@@ -1,5 +1,5 @@
-#include <axon/utils.h>
 #include <axon/codes.h>
+#include <axon/utils.h>
 
 static const u_int32_t AXON_LAST_LEAF = L'└';
 static const u_int32_t AXON_INTERSECTION_LEAF = L'├';
@@ -123,18 +123,18 @@ void axon_drawGraph(AxonGraph *axonGraph, size_t indent) {
 
 char *axon_getDatabaseName() {
   char *env = axon_getFlavor();
-  AxonConfig *config = axon_readConfig();
-  AxonEnvironmentConfig *envConfig = axon_findEnvConfig(config, env);
+  AxonConfig *config = axon_readDatabaseConfig();
+  AxonEnvironmentConfig *envConfig = axon_findEnvDatabaseConfig(config, env);
   free(env);
   if (envConfig == NULL) {
-    axon_freeConfig(config);
+    axon_freeDatabaseConfig(config);
     AXON_NO_DB_CONFIG_FOR_ENV_MSG
     return NULL;
   }
 
   char *name = calloc(sizeof(char), strlen(envConfig->name) + 1);
   strcat(name, envConfig->name);
-  axon_freeConfig(config);
+  axon_freeDatabaseConfig(config);
   return name;
 }
 

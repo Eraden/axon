@@ -29,6 +29,7 @@ axon db create
 axon db drop
 axon db setup
 axon db migrate
+axon triggers
 ```
 
 ## Migrations:
@@ -73,6 +74,28 @@ axon-migrator setup
 axon-migrator migrate
 ```
 
+## Compiler
+
+In version 1.1.1 introduce `axon-compiler` which compile migration callbacks.
+Creator also was enhanced to create empty triggers files.
+
+```bash
+axon-compiler triggers
+```
+
+Example trigger file for migration with timestamp `1234`:
+
+```c
+#include <axon/triggers.h>
+#include <axon/codes.h>
+
+int before_1234_callback(AxonCallbackData *data);
+
+int before_1234_callback(AxonCallbackData *data) {
+  return AXON_SUCCESS;
+}
+```
+
 ## Types
 
 `axon` support fallowing types of working environment:
@@ -98,6 +121,9 @@ KORE_ENV=test axon db create
 I highly recommend to exclude `.migrations` from version control system.
 
 ```asciidoc
+conf
+   ├── database.yml
+   └── triggers.yml
 src
   └── db
       ├── init.h
@@ -111,6 +137,25 @@ db
 .migrations
 ```
 
+## `database.yml`
+
+Example:
+
+```yaml
+dev:
+  name: "kore_dev"
+  port: 5432
+  host: "localhost"
+prod:
+  name: "kore_prod"
+  port: 5432
+  host: "localhost"
+test:
+  name: "kore_test"
+  port: 5432
+  host: "localhost"
+```
+
 ## `order.yml`
 
 Example:
@@ -122,6 +167,15 @@ seed:
 setup:
   - first_setup.sql
   - second_setup.sql
+```
+
+## `triggers.yml`
+
+Example:
+
+```yaml
+flags: -I./includes -L./lib
+libs: libaxonutils libaxonconfig
 ```
 
 All files should be stored in related directory. 

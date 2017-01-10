@@ -43,7 +43,7 @@ START_TEST(test_migratorCreateDatabaseWithoutConfig)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
   ck_dropTestDb();
-  ck_unlink("./conf/database.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
   int result;
   ck_redirectStderr(
       result = axon_createDatabase();
@@ -55,7 +55,7 @@ START_TEST(test_migratorDropDatabaseWithoutConfig)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
   ck_dropTestDb();
-  ck_unlink("./conf/database.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
   int result;
   ck_redirectStderr(
       result = axon_dropDatabase();
@@ -67,7 +67,7 @@ START_TEST(test_getContextNoConfig)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
   putenv("KORE_ENV=invalid-env");
-  ck_unlink("./conf/database.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
   char *info = NULL;
   ck_redirectStderr(axon_getConnectionInfo();)
   ck_assert_ptr_eq(info, NULL);
@@ -78,7 +78,7 @@ END_TEST
 START_TEST(test_getContextNoDbName)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */);
-  ck_overrideFile("./conf/database.yml", "test:\n  host: localhost\n");
+  ck_overrideFile(AXON_DATABASE_CONFIG_FILE, "test:\n  host: localhost\n");
   char *info = NULL;
   ck_redirectStderr(axon_getConnectionInfo();)
   ck_assert_ptr_eq(info, NULL);
@@ -231,23 +231,27 @@ START_TEST(test_axonSetup)
   axon_createConfig();
 
   int result;
-  ck_unlink("db/order.yml");
+  ck_unlink(AXON_ORDER_CONFIG_FILE);
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
-  ck_overrideFile("db/order.yml", "setup:\n  - one.sql\n  - two.sql\n  tree.sql\n");
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  - one.sql\n  - two.sql\n  tree.sql\n");
+  result = axon_setup();
+  ck_assert_int_eq(result, AXON_SUCCESS);
+
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - one.sql\n  - two.sql\n  tree.sql\n");
   ck_overrideFile("db/setup/one.sql", "CREATE TABLE test1(id serial);");
   ck_overrideFile("db/setup/two.sql", "CREATE TABLE test2(id serial);");
   ck_overrideFile("db/setup/tree.sql", "CREATE TABLE test3(id serial);");
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
-  ck_overrideFile("db/order.yml", "setup:\n  - four.sql\n  - five.sql\n");
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - four.sql\n  - five.sql\n");
   ck_overrideFile("db/setup/five.sql", "CREATE TABLE test5(id serial);");
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
-  ck_overrideFile("db/order.yml", "setup:\n  - five.sql\n");
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - five.sql\n");
   result = axon_setup();
   ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
 END_TEST

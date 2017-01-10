@@ -8,6 +8,7 @@ typedef struct sAxonCompileTriggersData {
   char *compiler;
   char **files;
   size_t len;
+  AxonTriggersConfig *config;
 } AxonCompileTriggersData;
 
 int axon_buildTriggers(void);

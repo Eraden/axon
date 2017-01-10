@@ -3,9 +3,9 @@
 
 START_TEST(test_readConfig)
   GO_TO_DUMMY
-  ck_unlink("./conf/database.yml");
+  ck_unlink(AXON_DATABASE_CONFIG_FILE);
 
-  AxonConfig *axonConfig = axon_readConfig();
+  AxonConfig *axonConfig = axon_readDatabaseConfig();
   ck_assert_int_eq(axonConfig->len, 3);
 
   AxonEnvironmentConfig **configs = axonConfig->configs;
@@ -59,16 +59,16 @@ START_TEST(test_readConfig)
   ck_assert_str_eq(c->name, "kore_test");
   ck_assert_int_eq(c->port, 5432);
 
-  axon_freeConfig(axonConfig);
+  axon_freeDatabaseConfig(axonConfig);
 END_TEST
 
 START_TEST(test_malformedDatabaseFile)
   GO_TO_DUMMY
 
   ck_overrideFile(AXON_DATABASE_CONFIG_FILE, "test:\n  - asd\n  -dsa");
-  AxonConfig *axonConfig = axon_readConfig();
+  AxonConfig *axonConfig = axon_readDatabaseConfig();
   ck_assert_ptr_ne(axonConfig, NULL);
-  axon_freeConfig(axonConfig);
+  axon_freeDatabaseConfig(axonConfig);
 END_TEST
 
 START_TEST(test_flavorFromFile)
@@ -107,26 +107,26 @@ END_TEST
 START_TEST(test_readOrderWithoutOrderFile)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
-  ck_unlink("./db/order.yml");
+  ck_unlink(AXON_ORDER_CONFIG_FILE);
   AxonOrder *order = NULL;
-  ck_redirectStderr(order = axon_readOrder();)
-  ck_assert_ptr_eq(order, NULL);
-  ck_path_contains("./log/error.log", "db/order.yml does not exists!");
+  order = axon_readOrderConfig();
+  ck_assert_ptr_ne(order, NULL);
+  axon_freeOrderConfig(order);
 END_TEST
 
 START_TEST(test_readOrderWithEmptyOrderFile)
   GO_TO_DUMMY
   IN_CLEAR_STATE(/* */)
-  ck_unlink("./db/order.yml");
-  axon_touch("./db/order.yml");
+  ck_unlink(AXON_ORDER_CONFIG_FILE);
+  axon_touch(AXON_ORDER_CONFIG_FILE);
   AxonOrder *order = NULL;
-  ck_redirectStderr(order = axon_readOrder();)
+  ck_redirectStderr(order = axon_readOrderConfig();)
   ck_assert_ptr_ne(order, NULL);
   ck_assert_int_eq(order->seedLen, 0);
   ck_assert_int_eq(order->setupLen, 0);
   ck_assert_ptr_eq(order->seedFiles, NULL);
   ck_assert_ptr_eq(order->setupFiles, NULL);
-  axon_freeOrder(order);
+  axon_freeOrderConfig(order);
 END_TEST
 
 START_TEST(test_axonOrder)
@@ -134,16 +134,16 @@ START_TEST(test_axonOrder)
   AxonOrder *axonOrder = NULL;
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\nseed:\n");
-  axonOrder = axon_readOrder();
+  axonOrder = axon_readOrderConfig();
   ck_assert_ptr_ne(axonOrder, NULL);
   ck_assert_int_eq(axonOrder->setupLen, 0);
   ck_assert_int_le(axonOrder->seedLen, 0);
   ck_assert_ptr_eq(axonOrder->setupFiles, NULL);
   ck_assert_ptr_eq(axonOrder->seedFiles, NULL);
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - one\n  - two\nseed:\n");
-  axonOrder = axon_readOrder();
+  axonOrder = axon_readOrderConfig();
   ck_assert_ptr_ne(axonOrder, NULL);
   ck_assert_int_eq(axonOrder->setupLen, 2);
   ck_assert_int_le(axonOrder->seedLen, 0);
@@ -153,10 +153,10 @@ START_TEST(test_axonOrder)
   ck_assert_str_eq(axonOrder->setupFiles[0], "one");
   ck_assert_ptr_ne(axonOrder->setupFiles[1], NULL);
   ck_assert_str_eq(axonOrder->setupFiles[1], "two");
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\nseed:\n  - one\n  - two\n");
-  axonOrder = axon_readOrder();
+  axonOrder = axon_readOrderConfig();
   ck_assert_ptr_ne(axonOrder, NULL);
   ck_assert_int_eq(axonOrder->setupLen, 0);
   ck_assert_int_le(axonOrder->seedLen, 2);
@@ -166,12 +166,12 @@ START_TEST(test_axonOrder)
   ck_assert_str_eq(axonOrder->seedFiles[0], "one");
   ck_assert_ptr_ne(axonOrder->seedFiles[1], NULL);
   ck_assert_str_eq(axonOrder->seedFiles[1], "two");
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  seed:\n  - test\n");
-  axonOrder = axon_readOrder();
+  axonOrder = axon_readOrderConfig();
   ck_assert_ptr_ne(axonOrder, NULL);
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
 END_TEST
 
 START_TEST(test_malformedOrder)
@@ -179,19 +179,47 @@ START_TEST(test_malformedOrder)
   AxonOrder *axonOrder = NULL;
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "hello:\n  seed:\n  - test\n");
-  axonOrder = axon_readOrder();
+  axonOrder = axon_readOrderConfig();
   ck_assert_ptr_ne(axonOrder, NULL);
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  -seed:\n  - test\n");
-  axonOrder = axon_readOrder();
+  axonOrder = axon_readOrderConfig();
   ck_assert_ptr_ne(axonOrder, NULL);
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  - seed:\n  -test\n");
-  axonOrder = axon_readOrder();
+  axonOrder = axon_readOrderConfig();
   ck_assert_ptr_ne(axonOrder, NULL);
-  axon_freeOrder(axonOrder);
+  axon_freeOrderConfig(axonOrder);
+END_TEST
+
+START_TEST(test_triggersConfig)
+  GO_TO_DUMMY
+  ck_unlink("./conf/triggers.yml");
+  IN_CLEAR_STATE(/* */)
+
+  AxonTriggersConfig *config = NULL;
+  config = axon_readTriggersConfig();
+  ck_assert_ptr_ne(config, NULL);
+  ck_assert_ptr_ne(config->flags, NULL);
+  ck_assert_ptr_ne(config->libs, NULL);
+  axon_freeTriggersConfig(config);
+
+  ck_overrideFile(AXON_TRIGGERS_FILE, "  ");
+  config = axon_readTriggersConfig();
+  ck_assert_ptr_ne(config, NULL);
+  axon_freeTriggersConfig(config);
+
+  ck_overrideFile(AXON_TRIGGERS_FILE, "  :");
+  config = axon_readTriggersConfig();
+  ck_assert_ptr_ne(config, NULL);
+  axon_freeTriggersConfig(config);
+
+  ck_overrideFile(AXON_TRIGGERS_FILE, "foo: bar");
+  config = axon_readTriggersConfig();
+  ck_assert_ptr_ne(config, NULL);
+  axon_freeTriggersConfig(config);
 END_TEST
 
 void test_config(Suite *s) {
@@ -205,5 +233,6 @@ void test_config(Suite *s) {
   tcase_add_test(testCaseConfig, test_readOrderWithEmptyOrderFile);
   tcase_add_test(testCaseConfig, test_axonOrder);
   tcase_add_test(testCaseConfig, test_malformedOrder);
+  tcase_add_test(testCaseConfig, test_triggersConfig);
   suite_add_tcase(s, testCaseConfig);
 }

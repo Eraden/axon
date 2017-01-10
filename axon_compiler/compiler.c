@@ -6,6 +6,66 @@ static int axon_collectSourceFiles(AxonCompileTriggersData *data);
 
 static void axon_freeAxonCompileTriggersData(AxonCompileTriggersData *data);
 
+static char *axon_appendLibsToCommand(char *command, char *libs) {
+  if (libs == NULL) return command;
+  const size_t len = strlen(libs);
+  size_t tmpLen = 0;
+  char *tmp = NULL;
+  char prev = 0;
+  for (size_t i = 0; i < len; i++) {
+    char c = libs[i];
+    if ((prev == ' ' || prev == 0) && c != ' ') {
+      tmpLen = tmpLen + strlen(" -l") + 1;
+      tmp = tmp ?
+            realloc(tmp, sizeof(char) * (tmpLen + 1)) :
+            calloc(sizeof(char), tmpLen + 1);
+      strcat(tmp, " -l");
+      tmp[tmpLen - 1] = c;
+      tmp[tmpLen] = 0;
+    } else {
+      tmpLen += 1;
+      tmp = tmp ?
+            realloc(tmp, sizeof(char) * (tmpLen + 1)) :
+            calloc(sizeof(char), tmpLen + 1);
+      tmp[tmpLen - 1] = c;
+      tmp[tmpLen] = 0;
+    }
+    prev = c;
+  }
+  const size_t oldLen = strlen(command);
+  const size_t newLen = oldLen + strlen(" ") + strlen(tmp);
+  command = realloc(command, sizeof(char) * (newLen + 1));
+  char *ptr = command + oldLen;
+  for (size_t i = 0; i < newLen - oldLen; i++) ptr[i] = 0;
+  strcat(command, " ");
+  strcat(command, tmp);
+  command[newLen] = 0;
+  free(tmp);
+  return command;
+}
+
+static char *axon_getObjectFilePath(const char *sourceFilePath) {
+  char *pwd = realpath("./", NULL);
+  char *ptr = realloc(pwd, sizeof(char) * (strlen(pwd) + strlen("/.axon") + 1));
+  if (ptr == NULL) {
+    /* LCOV_EXCL_START */
+    free(pwd);
+    return NULL;
+    /* LCOV_EXCL_STOP */
+  } else {
+    pwd = ptr;
+    strcat(pwd, "/.axon");
+  }
+  char *basename = strrchr(sourceFilePath, '/');
+  size_t pathLen = strlen(pwd) + strlen(basename);
+  char *objectPath = calloc(sizeof(char), pathLen + 1);
+  strcat(objectPath, pwd);
+  strcat(objectPath, basename);
+  objectPath[pathLen - 1] = 'o';
+  free(pwd);
+  return objectPath;
+}
+
 static int axon_resolveCompiler(AxonCompileTriggersData *data) {
   char *compiler = getenv("CC");
   if (compiler == NULL) compiler = "cc";
@@ -21,9 +81,7 @@ static int axon_collectSourceFiles(AxonCompileTriggersData *data) {
   DIR *d = opendir(path);
   size_t pathLen = strlen(path);
 
-  if (d == NULL) {
-    return AXON_FAILURE;
-  }
+  if (d == NULL) return AXON_FAILURE; /* LCOV_EXCL_LINE */
 
   struct dirent *p = readdir(d);
 
@@ -84,74 +142,76 @@ static void axon_freeAxonCompileTriggersData(AxonCompileTriggersData *data) {
 
 static const char *CREATE_TRIGGERS_OBJECTS = " -std=c11 -Wall -ldl -fPIC -c ";
 
-static const char *ASSEMBLY_TRIGGERS_OBJECTS = " -ldl -shared -o ./triggers.so";
+static const char *ASSEMBLY_TRIGGERS_OBJECTS = " -ldl -shared -o ./.axon/triggers.so ";
 
-// gcc -fPIC -c source_1.c source_2.c
+// gcc -fPIC -c ./db/migrate/source_1.c -o ./.axon/source_1.o
 static int axon_createObjectFiles(AxonCompileTriggersData *data) {
-  chdir("./.axon");
-
-  size_t len = strlen(data->compiler) + strlen(CREATE_TRIGGERS_OBJECTS);
-  char *command = calloc(sizeof(char), len + 1);
-  strcpy(command, data->compiler);
-  strcat(command, CREATE_TRIGGERS_OBJECTS);
+  int result = AXON_SUCCESS;
 
   char **files = data->files;
   while (files && *files) {
     char *file = *files;
-    len = len + strlen(file) + 1;
-    char *ptr = realloc(command, len + 1);
-    if (ptr == NULL) {
-      /* LCOV_EXCL_START */
-      free(command);
-      return AXON_FAILURE;
-      /* LCOV_EXCL_STOP */
-    } else {
-      command = ptr;
-    }
+    char *object = axon_getObjectFilePath(file);
+    size_t len = strlen(data->compiler);
+    len += 1;
+    len += strlen(CREATE_TRIGGERS_OBJECTS);
+    len += strlen(file);
+    len += strlen(" -o ");
+    len += strlen(object) + 1;
+    if (data->config->flags) len = len + strlen(" ") + strlen(data->config->flags);
+
+    char *command = calloc(sizeof(char), len + 1);
+    strcpy(command, data->compiler);
+    strcat(command, " ");
+    strcat(command, CREATE_TRIGGERS_OBJECTS);
     strcat(command, " ");
     strcat(command, file);
-    command[len] = 0;
+    strcat(command, " -o ");
+    strcat(command, object);
+    if (data->config->flags) {
+      strcat(command, " ");
+      strcat(command, data->config->flags);
+    }
+    command = axon_appendLibsToCommand(command, data->config->libs);
     files += 1;
+
+    result = axon_runCommand(command);
+    free(object);
+    free(command);
+    if (result != AXON_SUCCESS) break;
   }
 
-  int result = axon_runCommand(command);
-  free(command);
   return result;
 }
 
 // gcc -shared -o libtest.so source_1.o source_2.o
 static int axon_assemblyObjectFiles(AxonCompileTriggersData *data) {
-  chdir("./.axon");
-  char *pwd = realpath("./", NULL);
-
   size_t len = strlen(data->compiler) + strlen(ASSEMBLY_TRIGGERS_OBJECTS);
+  if (data->config->flags) len = len + strlen(" ") + strlen(data->config->flags);
   char *command = calloc(sizeof(char), len + 1);
   strcpy(command, data->compiler);
   strcat(command, ASSEMBLY_TRIGGERS_OBJECTS);
-  int result;
+  if (data->config->flags) {
+    strcat(command, " ");
+    strcat(command, data->config->flags);
+  }
+  command = axon_appendLibsToCommand(command, data->config->libs);
+  len = strlen(command);
+  int result = AXON_SUCCESS;
 
   char **read = data->files;
 
   while (read && *read) {
-    size_t pathLen = strlen(*read);
-    char *filePath = calloc(sizeof(char), pathLen + 1);
-    strcpy(filePath, *read);
-    char *basename = strrchr(filePath, '/');
-    pathLen = strlen(pwd) + strlen(basename);
-    char *objectPath = calloc(sizeof(char), pathLen + 1);
-    strcat(objectPath, pwd);
-    strcat(objectPath, basename);
-    objectPath[pathLen - 1] = 'o';
+    char *objectPath = axon_getObjectFilePath(*read);
 
-    len = len + pathLen + 1;
+    len = len + strlen(objectPath) + 1;
     char *ptr = realloc(command, sizeof(char) * (len + 1));
     if (ptr == NULL) {
       /* LCOV_EXCL_START */
-      free(filePath);
       free(objectPath);
       result = AXON_FAILURE;
+      break;
       /* LCOV_EXCL_STOP */
-      goto axon_compiler_assembly_done;
     } else {
       command = ptr;
     }
@@ -159,15 +219,11 @@ static int axon_assemblyObjectFiles(AxonCompileTriggersData *data) {
     strcat(command, objectPath);
     command[len] = 0;
     read += 1;
-    free(filePath);
     free(objectPath);
   }
 
-  result = axon_runCommand(command);
-
-axon_compiler_assembly_done:
+  if (result == AXON_SUCCESS) result = axon_runCommand(command);
   free(command);
-  free(pwd);
 
   return result;
 }
@@ -195,15 +251,17 @@ int axon_runCompiler(int argc, char **argv) {
 }
 
 int axon_buildTriggers(void) {
-  int result = axon_ensureStructure();
+  int result = axon_createConfig();
   if (result != AXON_SUCCESS) return result;
 
   AxonCompileTriggersData *data = calloc(sizeof(AxonCompileTriggersData), 1);
   data->pwd = calloc(sizeof(char), 1024);
   getcwd(data->pwd, 1024);
-  axon_resolveCompiler(data);
-  axon_collectSourceFiles(data);
-  result = axon_callCompiler(data);
+  data->config = axon_readTriggersConfig();
+  result = axon_resolveCompiler(data);
+  if (result == AXON_SUCCESS) result = axon_collectSourceFiles(data);
+  if (result == AXON_SUCCESS) result = axon_callCompiler(data);
+  axon_freeTriggersConfig(data->config);
   axon_freeAxonCompileTriggersData(data);
   return result;
 }

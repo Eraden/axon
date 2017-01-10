@@ -1,6 +1,7 @@
 #pragma once
 
 #include <axon/utils.h>
+#include <axon/codes.h>
 
 #include <yaml.h>
 
@@ -9,6 +10,12 @@ typedef enum eAxonOrderTarget {
   AXON_ORDER_TARGET_SEED,
   AXON_ORDER_TARGET_SETUP
 } AxonOrderTarget;
+
+typedef enum eAxonTriggersTarget {
+  AXON_TRIGGERS_TARGET_NONE,
+  AXON_TRIGGERS_TARGET_LIBS,
+  AXON_TRIGGERS_TARGET_FLAGS,
+} AxonTriggersTarget;
 
 typedef struct sAxonEnvironmentConfig {
   char *connectionName;
@@ -30,30 +37,37 @@ typedef struct sAxonOrder {
   size_t setupLen;
 } AxonOrder;
 
+typedef struct sAxonTriggersConfig {
+  char *libs;
+  char *flags;
+} AxonTriggersConfig;
+
 #define AXON_NO_SRC_DIRECTORY_MSG fprintf(stderr, "No src directory in path!\n");
 #define AXON_NO_DB_CONFIG_FOR_ENV_MSG fprintf(stderr, "No database config file for current env!\n");
 #define AXON_NO_CONN_INFO fprintf(stderr, "No connection information!\n");
+
 #define AXON_DATABASE_CONFIG_FILE "./conf/database.yml"
 #define AXON_ORDER_CONFIG_FILE "./db/order.yml"
+#define AXON_TRIGGERS_FILE "./conf/triggers.yml"
 
-void axon_createConfig(void);
-
-void axon_createOrder(void);
-
-char axon_configExists(void);
-
-char axon_orderExists(void);
-
-AxonConfig __attribute__((__malloc__))*axon_readConfig(void);
-
-AxonEnvironmentConfig *axon_findEnvConfig(AxonConfig *config, const char *env);
-
-AxonOrder __attribute__((__malloc__))*axon_readOrder(void);
-
-void axon_freeOrder(AxonOrder *order);
-
-void axon_freeConfig(AxonConfig *config);
+char axon_isDatabaseInitExists(void);
 
 char *axon_getFlavor(void);
 
-char axon_isDatabaseInitExists(void);
+char axon_configExists(void);
+
+int axon_createConfig(void);
+
+AxonEnvironmentConfig *axon_findEnvDatabaseConfig(AxonConfig *config, const char *env);
+
+AxonConfig __attribute__((__malloc__)) *axon_readDatabaseConfig(void);
+
+void axon_freeDatabaseConfig(AxonConfig *config);
+
+AxonOrder __attribute__((__malloc__)) *axon_readOrderConfig(void);
+
+void axon_freeOrderConfig(AxonOrder *order);
+
+AxonTriggersConfig *axon_readTriggersConfig(void);
+
+void axon_freeTriggersConfig(AxonTriggersConfig *config);

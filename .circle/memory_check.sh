@@ -2,6 +2,7 @@
 
 export PATH="/usr/local/bin:$PATH"
 export PATH="/usr/lib/llvm-3.8/bin:$PATH"
+export C_INCLUDE_PATH=${C_INCLUDE_PATH}:$PWD/../includes
 
 export CMAKE_C_COMPILER=$(which clang-3.8)
 export CC=$(which clang-3.8)
