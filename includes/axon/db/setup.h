@@ -6,6 +6,6 @@
 
 #define AXON_SETUP_FILES_DIRECTORY "./db/setup/"
 
-char axon_isSetup(char *str);
+char axon_isDatabaseSetup(char *str);
 
-int axon_setup();
+int axon_databaseSetup();

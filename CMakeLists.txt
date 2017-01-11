@@ -60,6 +60,7 @@ SET(
     axon-migrator/create.c
     axon-migrator/drop.c
     axon-migrator/setup.c
+    axon-migrator/seed.c
     axon-migrator/migrator.c
 )
 

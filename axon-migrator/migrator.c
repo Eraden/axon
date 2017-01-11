@@ -12,8 +12,10 @@ int axon_runMigrator(int argc, char **argv) {
     return axon_createDatabase();
   } else if (axon_isDatabaseDrop(argv[1])) {
     return axon_dropDatabase();
-  } else if (axon_isSetup(argv[1])) {
-    return axon_setup();
+  } else if (axon_isDatabaseSetup(argv[1])) {
+    return axon_databaseSetup();
+  } else if (axon_isDatabaseSeed(argv[1])) {
+    return axon_databaseSeed();
   } else {
     axon_migrator_info();
     return AXON_UNKNOWN_COMMAND;

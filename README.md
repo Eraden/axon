@@ -35,6 +35,8 @@ axon db create
 axon db drop
 axon db setup
 axon db migrate
+axon db setup
+axon db seed
 axon triggers
 ```
 
@@ -78,6 +80,7 @@ axon-migrator create
 axon-migrator drop
 axon-migrator setup
 axon-migrator migrate [--skip-triggers]
+axon-migrator seed
 ```
 
 ## Compiler

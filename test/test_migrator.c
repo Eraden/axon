@@ -241,13 +241,7 @@ START_TEST(test_migrateWithoutDirectory)
   axon_freeMigrations(context, 0);
 END_TEST
 
-START_TEST(test_isSetup)
-  GO_TO_DUMMY
-  ck_assert_int_eq(axon_isSetup("setup"), 1);
-  ck_assert_int_eq(axon_isSetup("set"), 0);
-END_TEST
-
-START_TEST(test_isInfo)
+START_TEST(test_isFunctions)
   GO_TO_DUMMY
   ck_assert_int_eq(axon_migrator_isInfo("info"), 1);
   ck_assert_int_eq(axon_migrator_isInfo("--info"), 1);
@@ -256,6 +250,12 @@ START_TEST(test_isInfo)
   ck_assert_int_eq(axon_migrator_isInfo("--help"), 1);
   ck_assert_int_eq(axon_migrator_isInfo("-h"), 1);
   ck_assert_int_eq(axon_migrator_isInfo("set"), 0);
+
+  ck_assert_int_eq(axon_isDatabaseSetup("setup"), 1);
+  ck_assert_int_eq(axon_isDatabaseSetup("set"), 0);
+
+  ck_assert_int_eq(axon_isDatabaseSeed("seed"), 1);
+  ck_assert_int_eq(axon_isDatabaseSeed("set"), 0);
 END_TEST
 
 START_TEST(test_axonSetup)
@@ -265,27 +265,60 @@ START_TEST(test_axonSetup)
 
   int result;
   ck_unlink(AXON_ORDER_CONFIG_FILE);
-  result = axon_setup();
+  result = axon_databaseSetup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  - one.sql\n  - two.sql\n  tree.sql\n");
-  result = axon_setup();
+  result = axon_databaseSetup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - one.sql\n  - two.sql\n  tree.sql\n");
   ck_overrideFile("db/setup/one.sql", "CREATE TABLE test1(id serial);");
   ck_overrideFile("db/setup/two.sql", "CREATE TABLE test2(id serial);");
   ck_overrideFile("db/setup/tree.sql", "CREATE TABLE test3(id serial);");
-  result = axon_setup();
+  result = axon_databaseSetup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - four.sql\n  - five.sql\n");
   ck_overrideFile("db/setup/five.sql", "CREATE TABLE test5(id serial);");
-  result = axon_setup();
+  result = axon_databaseSetup();
   ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - five.sql\n");
-  result = axon_setup();
+  result = axon_databaseSetup();
+  ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
+END_TEST
+
+START_TEST(test_axonSeed)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  axon_createConfig();
+
+  char *args[2] = { "inline", "seed" };
+
+  int result;
+  ck_unlink(AXON_ORDER_CONFIG_FILE);
+  result = axon_runMigrator(2, args);
+  ck_assert_int_eq(result, AXON_SUCCESS);
+
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "setup:\n  - one.sql\n  - two.sql\n  tree.sql\n");
+  result = axon_runMigrator(2, args);
+  ck_assert_int_eq(result, AXON_SUCCESS);
+
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  - one.sql\n  - two.sql\n  tree.sql\n");
+  ck_overrideFile("db/seed/one.sql", "CREATE TABLE test1(id serial);");
+  ck_overrideFile("db/seed/two.sql", "CREATE TABLE test2(id serial);");
+  ck_overrideFile("db/seed/tree.sql", "CREATE TABLE test3(id serial);");
+  result = axon_runMigrator(2, args);
+  ck_assert_int_eq(result, AXON_SUCCESS);
+
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  - four.sql\n  - five.sql\n");
+  ck_overrideFile("db/seed/five.sql", "CREATE TABLE test5(id serial);");
+  result = axon_runMigrator(2, args);
+  ck_assert_int_eq(result, AXON_SUCCESS);
+
+  ck_overrideFile(AXON_ORDER_CONFIG_FILE, "seed:\n  - five.sql\n");
+  result = axon_runMigrator(2, args);
   ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
 END_TEST
 
@@ -326,7 +359,7 @@ void test_migrator(Suite *s) {
   TCase *testCaseDatabase = tcase_create("Migrator");
   tcase_add_test(testCaseDatabase, test_noArgs);
   tcase_add_test(testCaseDatabase, test_unknownOperation);
-  tcase_add_test(testCaseDatabase, test_isInfo);
+  tcase_add_test(testCaseDatabase, test_isFunctions);
   tcase_add_test(testCaseDatabase, test_migrateWithPerformed);
   tcase_add_test(testCaseDatabase, test_migrateWithoutDirectory);
   tcase_add_test(testCaseDatabase, test_migratorCreateDatabase);
@@ -340,8 +373,8 @@ void test_migrator(Suite *s) {
   tcase_add_test(testCaseDatabase, test_psqlExecInvalidConnInfo);
   tcase_add_test(testCaseDatabase, test_queryInTransaction);
   tcase_add_test(testCaseDatabase, test_markedPerformed);
-  tcase_add_test(testCaseDatabase, test_isSetup);
   tcase_add_test(testCaseDatabase, test_axonSetup);
+  tcase_add_test(testCaseDatabase, test_axonSeed);
   tcase_add_test(testCaseDatabase, test_sequence);
   tcase_add_test(testCaseDatabase, test_migrateWithCallbacks);
   suite_add_tcase(s, testCaseDatabase);

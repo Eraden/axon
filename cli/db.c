@@ -25,6 +25,8 @@ int axon_execDatabaseCommand(int argc, char **argv) {
     return axon_runCommand("axon-migrator drop");
   } else if (strcmp(op, "setup") == 0) {
     return axon_runCommand("axon-migrator setup");
+  } else if (strcmp(op, "seed") == 0) {
+    return axon_runCommand("axon-migrator seed");
   } else {
     return AXON_UNKNOWN_COMMAND;
   }
