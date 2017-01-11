@@ -12,7 +12,6 @@ AxonColumnData *axon_getColumn(char *rawColumn) {
 
   char *columnName = calloc(sizeof(char), columnLen);
   char *columnType = calloc(sizeof(char), columnLen);
-  char *columnDefault = calloc(sizeof(char), columnLen);
 
   if (strstr(rawColumn, ":") != NULL) {
     char *ptr = rawColumn;
@@ -24,8 +23,6 @@ AxonColumnData *axon_getColumn(char *rawColumn) {
         fill += 1;
       } else {
         if (current == columnName) current = fill = columnType;
-        else if (current == columnType) current = fill = columnDefault; /* LCOV_EXCL_LINE */
-        else if (current == columnDefault) current = fill = NULL; /* LCOV_EXCL_LINE */
       }
       ptr += 1;
     }
@@ -37,9 +34,26 @@ AxonColumnData *axon_getColumn(char *rawColumn) {
     strcpy(columnType, isId ? "varchar" : "serial");
   }
   AxonColumnData *column = (AxonColumnData *) calloc(sizeof(AxonColumnData), 1);
+  column->constraints = NULL;
+  column->constraintsLen = 0;
   column->name = columnName;
-  column->type = columnType;
-  column->defaultValue = columnDefault;
+  if (strstr(columnType, "(") == NULL) {
+    column->type = columnType;
+  } else {
+    column->type = calloc(sizeof(char), strlen("int") + 1);
+    strcat(column->type, "int");
+    AxonColumnConstraint *constraint = calloc(sizeof(AxonColumnConstraint), 1);
+    constraint->type = AXON_COLUMN_CONSTRAINT_REFERENCE;
+    constraint->name = NULL;
+    constraint->reference = columnType;
+    column->constraintsLen += 1;
+    column->constraints = column->constraints ?
+                          realloc(column->constraints, sizeof(AxonColumnConstraint *) * (column->constraintsLen + 1))
+                                              : /* LCOV_EXCL_LINE */
+                          calloc(sizeof(AxonColumnConstraint *), column->constraintsLen + 1);
+    column->constraints[column->constraintsLen - 1] = constraint;
+    column->constraints[column->constraintsLen] = 0;
+  }
   return column;
 }
 
@@ -138,10 +152,28 @@ static int axon_changeColumnType(char **argv) {
   return AXON_SUCCESS;
 }
 
+static void axon_freeColumnConstraint(AxonColumnConstraint *constraint) {
+  if (constraint == NULL) return;
+  if (constraint->name) free(constraint->name);
+  switch (constraint->type) {
+    case AXON_COLUMN_CONSTRAINT_REFERENCE:
+      if (constraint->reference) free(constraint->reference);
+      break;
+    case AXON_COLUMN_CONSTRAINT_NONE:
+      break; /* LCOV_EXCL_LINE */
+  }
+  free(constraint);
+}
+
 void axon_freeColumn(AxonColumnData *column) {
   if (column == NULL) return;
   if (column->name) free(column->name);
   if (column->type) free(column->type);
-  if (column->defaultValue) free(column->defaultValue);
+  AxonColumnConstraint **constraints = column->constraints;
+  while (constraints && *constraints) {
+    axon_freeColumnConstraint(*constraints);
+    constraints += 1;
+  }
+  if (column->constraints) free(column->constraints);
   free(column);
 }
