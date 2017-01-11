@@ -174,6 +174,10 @@ START_TEST(test_databaseCommands)
   ck_redirectStdout(result = axon_runCli(3, setupDatabaseArgs);)
   ck_assert_int_eq(result, AXON_SUCCESS);
 
+  ck_createTestDb();
+  char *seedDatabaseArgs[3] = {"inline", "db", "seed"};
+  ck_redirectStdout(result = axon_runCli(3, seedDatabaseArgs);)
+  ck_assert_int_eq(result, AXON_SUCCESS);
 
   char *invalidDatabaseArgs[3] = {"inline", "db", "hello"};
   ck_redirectStdout(result = axon_runCli(3, invalidDatabaseArgs);)
