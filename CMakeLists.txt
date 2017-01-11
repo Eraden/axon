@@ -44,30 +44,28 @@ SET(
 
 SET(
     AXON_CREATOR_SOURCE_FILES
-    axon_creator/info.c
-    axon_creator/write.c
-    axon_creator/init.c
-    axon_creator/column.c
-    axon_creator/table.c
-    axon_creator/enum.c
-    axon_creator/creator.c
+    axon-creator/info.c
+    axon-creator/write.c
+    axon-creator/init.c
+    axon-creator/column.c
+    axon-creator/table.c
+    axon-creator/enum.c
+    axon-creator/creator.c
 )
 
 SET(
     AXON_MIGRATOR_SOURCE_FILES
-    axon_migrator/db/exec.c
-    axon_migrator/db/exec_sequence.c
-    axon_migrator/info.c
-    axon_migrator/migrate.c
-    axon_migrator/create.c
-    axon_migrator/drop.c
-    axon_migrator/setup.c
-    axon_migrator/migrator.c
+    axon-migrator/info.c
+    axon-migrator/migrate.c
+    axon-migrator/create.c
+    axon-migrator/drop.c
+    axon-migrator/setup.c
+    axon-migrator/migrator.c
 )
 
 SET(
     AXON_COMPILER_SOURCE_FILES
-    axon_compiler/compiler.c
+    axon-compiler/compiler.c
 )
 
 SET(
@@ -80,32 +78,42 @@ SET(
 )
 
 SET(
+    AXON_REQUESTER_SOURCE_FILES
+    axon-requester/requester.c
+)
+
+SET(
     TEST_SOURCE_FILES
     ${AXON_SOURCE_FILES}
     ${AXON_CREATOR_SOURCE_FILES}
     ${AXON_MIGRATOR_SOURCE_FILES}
     ${AXON_COMPILER_SOURCE_FILES}
     ${AXON_CONFIG_SOURCE_FILES}
+    ${AXON_REQUESTER_SOURCE_FILES}
     test/support/ck_io.c
     test/support/prepare.c
-    axon_creator/init.c
+    test/support/build_dummy_triggers.c
+    axon-creator/init.c
     test/test_cli.c
     test/test_migrator.c
     test/test_creator.c
     test/test_config.c
     test/test_utils.c
     test/test_compiler.c
+    test/test_requester.c
     test/support/reset_environment.c
 )
 
 ADD_EXECUTABLE(axon ${AXON_SOURCE_FILES} cli/main.c)
-ADD_EXECUTABLE(axon-migrator ${AXON_MIGRATOR_SOURCE_FILES} axon_migrator/main.c)
-ADD_EXECUTABLE(axon-creator ${AXON_CREATOR_SOURCE_FILES} axon_creator/main.c)
-ADD_EXECUTABLE(axon-compiler ${AXON_COMPILER_SOURCE_FILES} axon_compiler/main.c)
+ADD_EXECUTABLE(axon-migrator ${AXON_MIGRATOR_SOURCE_FILES} axon-migrator/main.c)
+ADD_EXECUTABLE(axon-creator ${AXON_CREATOR_SOURCE_FILES} axon-creator/main.c)
+ADD_EXECUTABLE(axon-compiler ${AXON_COMPILER_SOURCE_FILES} axon-compiler/main.c)
+ADD_EXECUTABLE(axon-requester ${AXON_REQUESTER_SOURCE_FILES} axon-requester/main.c)
 ADD_EXECUTABLE(axon_test ${TEST_SOURCE_FILES} test/test.c)
 
-ADD_LIBRARY(axonutils lib/utils.c)
-ADD_LIBRARY(axonconfig ${AXON_CONFIG_SOURCE_FILES})
+ADD_LIBRARY(axonutils SHARED lib/utils.c)
+ADD_LIBRARY(axonconfig SHARED ${AXON_CONFIG_SOURCE_FILES})
+ADD_LIBRARY(axonexec SHARED lib/exec/exec.c lib/exec/exec_sequence.c)
 
 SET(
     LIBS
@@ -125,56 +133,45 @@ endif ()
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/includes DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+
 ADD_CUSTOM_COMMAND(
     TARGET axonutils
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:axonutils> ${CMAKE_CURRENT_BINARY_DIR}/lib
 )
+
 ADD_CUSTOM_COMMAND(
     TARGET axonconfig
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:axonconfig> ${CMAKE_CURRENT_BINARY_DIR}/lib
 )
 
-TARGET_LINK_LIBRARIES(
-    axonutils
-    ${LIBYAML_LIBRARIES}
+ADD_CUSTOM_COMMAND(
+    TARGET axonexec
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:axonexec> ${CMAKE_CURRENT_BINARY_DIR}/lib
 )
 
-TARGET_LINK_LIBRARIES(
-    axonconfig
-    axonutils
-    ${LIBYAML_LIBRARIES}
-)
+TARGET_LINK_LIBRARIES(axonutils ${LIBYAML_LIBRARIES})
 
-TARGET_LINK_LIBRARIES(
-    axon
-    ${LIBS}
-)
+TARGET_LINK_LIBRARIES(axonconfig ${LIBYAML_LIBRARIES})
 
-TARGET_LINK_LIBRARIES(
-    axon-migrator
-    ${LIBS}
-)
+TARGET_LINK_LIBRARIES(axonexec ${PostgreSQL_LIBRARIES})
 
-TARGET_LINK_LIBRARIES(
-    axon-creator
-    ${LIBS}
-)
+TARGET_LINK_LIBRARIES(axon ${LIBS})
 
-TARGET_LINK_LIBRARIES(
-    axon-compiler
-    ${LIBS}
-)
+TARGET_LINK_LIBRARIES(axon-migrator axonexec ${LIBS})
 
-TARGET_LINK_LIBRARIES(
-    axon_test
-    ${CHECK_LIBRARIES}
-    ${LIBS} -ldl gcov
-)
+TARGET_LINK_LIBRARIES(axon-creator ${LIBS})
+
+TARGET_LINK_LIBRARIES(axon-compiler ${LIBS})
+
+TARGET_LINK_LIBRARIES(axon-requester ${LIBS} axonexec dl)
+
+TARGET_LINK_LIBRARIES(axon_test ${CHECK_LIBRARIES} axonexec ${LIBS} dl gcov)
 
 INSTALL(
-    TARGETS axon axon-migrator axon-creator axonconfig axonutils
+    TARGETS axon axon-migrator axon-creator axon-compiler axon-requester axonconfig axonutils axonexec
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib/static

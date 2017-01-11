@@ -20,12 +20,7 @@ START_TEST(test_compiler_triggers)
   fprintf(f, AXON_CALLBACK, "after", t, "after", t);
   fclose(f);
 
-  ck_overrideFile(
-      AXON_TRIGGERS_FILE,
-      ""
-          "libs: axonconfig axonutils\n"
-          "flags: -I../includes -L../lib\n"
-  );
+  ck_writeTestTriggersConfig();
 
   char *args[2] = {"inline", "triggers"};
   result = axon_runCompiler(2, args);

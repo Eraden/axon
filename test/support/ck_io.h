@@ -35,6 +35,10 @@ void _ck_make_dummy_sql(const char *name, const char *sql, long long int timesta
 
 void ck_ensureDbEnv();
 
+void _ck_writeTestTriggersConfig(void);
+
+#define ck_writeTestTriggersConfig() _ck_writeTestTriggersConfig();
+
 #define ck_find_file_in(dir, pattern) _ck_findFile(dir, pattern)
 
 #define ck_make_dummy_sql(name, sql, timestamp) _ck_make_dummy_sql(name, sql, timestamp);
@@ -68,7 +72,7 @@ void ck_ensureDbEnv();
 #define ck_overrideFile(path, content) do { \
   FILE *f = fopen(path, "w+"); \
   if (f == NULL) break; \
-  fprintf(f, content); \
+  fprintf(f, "%s", content); \
   fclose(f); \
 } while (0)
 

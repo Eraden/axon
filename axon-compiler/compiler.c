@@ -1,10 +1,26 @@
 #include "compiler.h"
 
-static int axon_resolveCompiler(AxonCompileTriggersData *data);
+static const char *CREATE_TRIGGERS_OBJECTS = " -std=c11 -Wall -fPIC -c ";
 
-static int axon_collectSourceFiles(AxonCompileTriggersData *data);
+#ifdef __clang__
+static const char *CREATE_TRIGGERS_OBJECTS_MEM_CHECK = " -g -fsanitize=address -fno-omit-frame-pointer -std=c11 -Wall -fPIC -c ";
+#else
+static const char *CREATE_TRIGGERS_OBJECTS_MEM_CHECK = " -std=c11 -Wall -fPIC -c ";
+#endif
 
-static void axon_freeAxonCompileTriggersData(AxonCompileTriggersData *data);
+static const char *ASSEMBLY_TRIGGERS_OBJECTS = " -ldl -shared -o ./.axon/triggers.so ";
+
+#ifdef __clang__
+static const char *ASSEMBLY_TRIGGERS_OBJECTS_MEM_CHECK = " -g -fsanitize=address -fno-omit-frame-pointer -ldl -shared -o ./.axon/triggers.so ";
+#else
+static const char *ASSEMBLY_TRIGGERS_OBJECTS_MEM_CHECK = " -ldl -shared -o ./.axon/triggers.so ";
+#endif
+
+static int axon_resolveCompiler(AxonCompileTriggersContext *context);
+
+static int axon_collectSourceFiles(AxonCompileTriggersContext *context);
+
+static void axon_freeAxonCompileTriggersData(AxonCompileTriggersContext *context);
 
 static char *axon_appendLibsToCommand(char *command, char *libs) {
   if (libs == NULL) return command;
@@ -66,17 +82,20 @@ static char *axon_getObjectFilePath(const char *sourceFilePath) {
   return objectPath;
 }
 
-static int axon_resolveCompiler(AxonCompileTriggersData *data) {
+static int axon_resolveCompiler(AxonCompileTriggersContext *context) {
   char *compiler = getenv("CC");
+  if (context->option == AXON_COMPILER_MEM_CHECK_OPTION) {
+    compiler = "clang";
+  }
   if (compiler == NULL) compiler = "cc";
   char *str = calloc(sizeof(char), strlen(compiler) + 1);
   strcpy(str, compiler);
-  data->compiler = str;
+  context->compiler = str;
 
   return AXON_SUCCESS;
 }
 
-static int axon_collectSourceFiles(AxonCompileTriggersData *data) {
+static int axon_collectSourceFiles(AxonCompileTriggersContext *context) {
   char *path = realpath("./db/migrate", NULL);
   DIR *d = opendir(path);
   size_t pathLen = strlen(path);
@@ -107,18 +126,18 @@ static int axon_collectSourceFiles(AxonCompileTriggersData *data) {
     snprintf(buf, len, "%s/%s", path, p->d_name);
 
     char isFile = !stat(buf, &statBuf) && S_ISREG(statBuf.st_mode);
-    if (isFile && strstr(p->d_name, ".c") != NULL) {
-      data->len += 1;
-      data->files = data->files ?
-                    realloc(data->files, sizeof(char *) * (data->len + 1)) :
-                    calloc(sizeof(char *), data->len + 1);
-      data->files[data->len - 1] = buf;
-      data->files[data->len] = 0;
+    if (isFile && strstr(p->d_name, "_callback.c") != NULL) {
+      context->len += 1;
+      context->files = context->files ?
+                       realloc(context->files, sizeof(char *) * (context->len + 1)) :
+                       calloc(sizeof(char *), context->len + 1);
+      context->files[context->len - 1] = buf;
+      context->files[context->len] = 0;
       p = readdir(d);
     } else {
       /* LCOV_EXCL_START */
       free(buf);
-      p = NULL;
+      p = readdir(d);
       /* LCOV_EXCL_STOP */
     }
   }
@@ -128,51 +147,49 @@ static int axon_collectSourceFiles(AxonCompileTriggersData *data) {
   return AXON_SUCCESS;
 }
 
-static void axon_freeAxonCompileTriggersData(AxonCompileTriggersData *data) {
-  char **files = data->files;
+static void axon_freeAxonCompileTriggersData(AxonCompileTriggersContext *context) {
+  char **files = context->files;
   while (files && *files) {
     free(*files);
     files += 1;
   }
-  if (data->compiler) free(data->compiler);
-  if (data->files) free(data->files);
-  if (data->pwd) free(data->pwd);
-  free(data);
+  if (context->compiler) free(context->compiler);
+  if (context->files) free(context->files);
+  if (context->pwd) free(context->pwd);
+  free(context);
 }
 
-static const char *CREATE_TRIGGERS_OBJECTS = " -std=c11 -Wall -ldl -fPIC -c ";
-
-static const char *ASSEMBLY_TRIGGERS_OBJECTS = " -ldl -shared -o ./.axon/triggers.so ";
-
 // gcc -fPIC -c ./db/migrate/source_1.c -o ./.axon/source_1.o
-static int axon_createObjectFiles(AxonCompileTriggersData *data) {
+static int axon_createObjectFiles(AxonCompileTriggersContext *context) {
   int result = AXON_SUCCESS;
 
-  char **files = data->files;
+  char **files = context->files;
   while (files && *files) {
     char *file = *files;
     char *object = axon_getObjectFilePath(file);
-    size_t len = strlen(data->compiler);
+    size_t len = strlen(context->compiler);
     len += 1;
-    len += strlen(CREATE_TRIGGERS_OBJECTS);
+    if (context->option == AXON_COMPILER_MEM_CHECK_OPTION) {
+      len += strlen(CREATE_TRIGGERS_OBJECTS_MEM_CHECK);
+    } else {
+      len += strlen(CREATE_TRIGGERS_OBJECTS);
+    }
     len += strlen(file);
     len += strlen(" -o ");
     len += strlen(object) + 1;
-    if (data->config->flags) len = len + strlen(" ") + strlen(data->config->flags);
 
     char *command = calloc(sizeof(char), len + 1);
-    strcpy(command, data->compiler);
+    strcpy(command, context->compiler);
     strcat(command, " ");
-    strcat(command, CREATE_TRIGGERS_OBJECTS);
+    if (context->option == AXON_COMPILER_MEM_CHECK_OPTION) {
+      strcat(command, CREATE_TRIGGERS_OBJECTS_MEM_CHECK);
+    } else {
+      strcat(command, CREATE_TRIGGERS_OBJECTS);
+    }
     strcat(command, " ");
     strcat(command, file);
     strcat(command, " -o ");
     strcat(command, object);
-    if (data->config->flags) {
-      strcat(command, " ");
-      strcat(command, data->config->flags);
-    }
-    command = axon_appendLibsToCommand(command, data->config->libs);
     files += 1;
 
     result = axon_runCommand(command);
@@ -185,21 +202,30 @@ static int axon_createObjectFiles(AxonCompileTriggersData *data) {
 }
 
 // gcc -shared -o libtest.so source_1.o source_2.o
-static int axon_assemblyObjectFiles(AxonCompileTriggersData *data) {
-  size_t len = strlen(data->compiler) + strlen(ASSEMBLY_TRIGGERS_OBJECTS);
-  if (data->config->flags) len = len + strlen(" ") + strlen(data->config->flags);
-  char *command = calloc(sizeof(char), len + 1);
-  strcpy(command, data->compiler);
-  strcat(command, ASSEMBLY_TRIGGERS_OBJECTS);
-  if (data->config->flags) {
-    strcat(command, " ");
-    strcat(command, data->config->flags);
+static int axon_assemblyObjectFiles(AxonCompileTriggersContext *context) {
+  size_t len = strlen(context->compiler);
+  if (context->option == AXON_COMPILER_MEM_CHECK_OPTION) {
+    len = len + strlen(ASSEMBLY_TRIGGERS_OBJECTS_MEM_CHECK);
+  } else {
+    len = len + strlen(ASSEMBLY_TRIGGERS_OBJECTS);
   }
-  command = axon_appendLibsToCommand(command, data->config->libs);
+  if (context->config->flags) len = len + strlen(" ") + strlen(context->config->flags);
+  char *command = calloc(sizeof(char), len + 1);
+  strcpy(command, context->compiler);
+  if (context->option == AXON_COMPILER_MEM_CHECK_OPTION) {
+    strcat(command, ASSEMBLY_TRIGGERS_OBJECTS_MEM_CHECK);
+  } else {
+    strcat(command, ASSEMBLY_TRIGGERS_OBJECTS);
+  }
+  if (context->config->flags) {
+    strcat(command, " ");
+    strcat(command, context->config->flags);
+  }
+  command = axon_appendLibsToCommand(command, context->config->libs);
   len = strlen(command);
   int result = AXON_SUCCESS;
 
-  char **read = data->files;
+  char **read = context->files;
 
   while (read && *read) {
     char *objectPath = axon_getObjectFilePath(*read);
@@ -228,40 +254,50 @@ static int axon_assemblyObjectFiles(AxonCompileTriggersData *data) {
   return result;
 }
 
-static int axon_callCompiler(AxonCompileTriggersData *data) {
+static int axon_callCompiler(AxonCompileTriggersContext *context) {
   int result;
-  chdir(data->pwd);
-  result = axon_createObjectFiles(data);
-  chdir(data->pwd);
+  chdir(context->pwd);
+  result = axon_createObjectFiles(context);
+  chdir(context->pwd);
   if (result != AXON_SUCCESS) return result;
-  chdir(data->pwd);
-  result = axon_assemblyObjectFiles(data);
-  chdir(data->pwd);
+  chdir(context->pwd);
+  result = axon_assemblyObjectFiles(context);
+  chdir(context->pwd);
   return result;
+}
+
+static void axon_compilerCheckOptions(int argc, char **argv, AxonCompileTriggersContext *context) {
+  for (unsigned i = 2; i < argc; i++) {
+    if (strcmp(argv[i], "--mem-check") == 0) {
+      context->option = AXON_COMPILER_MEM_CHECK_OPTION;
+    }
+  }
 }
 
 int axon_runCompiler(int argc, char **argv) {
   if (argc < 2) return AXON_FAILURE;
 
   if (strcmp(argv[1], "triggers") == 0) {
-    return axon_buildTriggers();
+    return axon_buildTriggers(argc, argv);
   } else {
     return AXON_UNKNOWN_COMMAND;
   }
 }
 
-int axon_buildTriggers(void) {
+int axon_buildTriggers(int argc, char **argv) {
   int result = axon_createConfig();
   if (result != AXON_SUCCESS) return result;
 
-  AxonCompileTriggersData *data = calloc(sizeof(AxonCompileTriggersData), 1);
-  data->pwd = calloc(sizeof(char), 1024);
-  getcwd(data->pwd, 1024);
-  data->config = axon_readTriggersConfig();
-  result = axon_resolveCompiler(data);
-  if (result == AXON_SUCCESS) result = axon_collectSourceFiles(data);
-  if (result == AXON_SUCCESS) result = axon_callCompiler(data);
-  axon_freeTriggersConfig(data->config);
-  axon_freeAxonCompileTriggersData(data);
+  AxonCompileTriggersContext *context = calloc(sizeof(AxonCompileTriggersContext), 1);
+  context->option = AXON_COMPILER_NO_OPTION;
+  context->pwd = calloc(sizeof(char), 1024);
+  getcwd(context->pwd, 1024);
+  context->config = axon_readTriggersConfig();
+  axon_compilerCheckOptions(argc, argv, context);
+  result = axon_resolveCompiler(context);
+  if (result == AXON_SUCCESS) result = axon_collectSourceFiles(context);
+  if (result == AXON_SUCCESS) result = axon_callCompiler(context);
+  axon_freeTriggersConfig(context->config);
+  axon_freeAxonCompileTriggersData(context);
   return result;
 }

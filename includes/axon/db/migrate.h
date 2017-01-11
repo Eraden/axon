@@ -14,6 +14,7 @@ typedef struct sAxonMigration {
 typedef struct sAxonMigratorContext {
   size_t len;
   AxonMigration **migrations;
+  char *connInfo;
 } AxonMigratorContext;
 
 
@@ -23,4 +24,4 @@ void axon_freeMigrations(AxonMigratorContext *axonMigratorContext, const char wr
 
 char axon_isMigrate(const char *arg);
 
-int axon_migrate();
+int axon_migrate(int argc, char **argv);

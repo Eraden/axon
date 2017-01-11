@@ -25,7 +25,8 @@ START_TEST(test_migratorMigrate)
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples DROP COLUMN login;", NOW() + 3);
   ck_make_dummy_sql("change_examples", "ALTER TABLE examples ADD COLUMN created_at timestamp;", NOW() + 4);
 
-  ck_assert_int_eq(axon_migrate(), AXON_SUCCESS);
+  char *args[3] = {"inline", "migrate", "--skip-triggers"};
+  ck_assert_int_eq(axon_migrate(3, args), AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_migratorCreateDatabase)
@@ -33,9 +34,7 @@ START_TEST(test_migratorCreateDatabase)
   IN_CLEAR_STATE(/* */)
   int result;
   ck_dropTestDb();
-  ck_redirectStderr(
-      result = axon_createDatabase();
-  )
+  ck_redirectStderr(result = axon_createDatabase();)
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
@@ -84,6 +83,36 @@ START_TEST(test_getContextNoDbName)
   ck_assert_ptr_eq(info, NULL);
   ck_unlink("./conf/database.yml");
   IN_CLEAR_STATE(/* */);
+END_TEST
+
+START_TEST(test_migrateWithCallbacks)
+  GO_TO_DUMMY
+  IN_CLEAR_STATE(/* */)
+  ck_writeTestTriggersConfig();
+  int result;
+  long long unsigned now = 123456789;
+  char *beforeCallback = "./db/migrate/123456789_before_callback.c";
+  char *afterCallback = "./db/migrate/123456789_after_callback.c";
+
+  ck_make_dummy_sql("create_posts", "CREATE TEMP TABLE posts (id serial);", now);
+
+  ck_axon_dummy_triggers(
+      beforeCallback, "#include <axon/triggers.h>\n"
+          "void freePayload(void *ptr) { printf(\"Hello free payload\\n\"); free(ptr); }\n"
+          "#include <axon/codes.h>\n"
+          "#include <axon/utils.h>\n"
+          "int before_123456789_callback(AxonCallbackData *data) {\n"
+          "  data->freePayload = freePayload;\n"
+          "  data->payload = calloc(sizeof(char), strlen(\"CREATE TEMP TABLE replace(id serial);\") + 1);\n"
+          "  strcpy(data->payload, \"CREATE TEMP TABLE replace(id serial);\");\n"
+          "  return AXON_SUCCESS;\n"
+          "}",
+      afterCallback, NULL
+  );
+
+  char *args[2] = {"inline", "migrate"};
+  result = axon_runMigrator(2, args);
+  ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
 START_TEST(test_psqlExecNoConnInfo)
@@ -148,7 +177,9 @@ START_TEST(test_migrateWithPerformed)
   ck_assert_ptr_ne(f, NULL);
   fprintf(f, "%s", buffer);
   fclose(f);
-  int result = axon_migrate();
+
+  char *args[3] = {"inline", "migrate", "--skip-triggers"};
+  int result = axon_migrate(3, args);
   ck_assert_int_eq(result, AXON_SUCCESS);
 END_TEST
 
@@ -157,15 +188,17 @@ START_TEST(test_invalidMigrate)
   IN_CLEAR_STATE(/* */)
   const long long now = NOW();
   int result;
+  char *args[3] = {"inline", "migrate", "--skip-triggers"};
+
   ck_make_dummy_sql("first", "CREATE TABLE first(id serial)", now + 1);
   ck_make_dummy_sql("second", "CREATE TABLE second(id serial)", now + 2);
-  result = axon_migrate();
+  result = axon_migrate(3, args);
   ck_assert_int_eq(result, AXON_SUCCESS);
 
   ck_unlink(AXON_MIGRATIONS_FILE);
   ck_make_dummy_sql("third", "CREATE TABLE third(id serial)", now + 3);
   ck_make_dummy_sql("fourth", "CREATE TABLE fourth(id serial)", now + 4);
-  ck_redirectStderr(result = axon_migrate();)
+  ck_redirectStderr(result = axon_migrate(3, args);)
   ck_assert_int_eq(result, AXON_SEQ_INVALID_FILE);
   ck_path_contains("./log/error.log", "aborting (all changes will be reversed)...");
 END_TEST
@@ -310,5 +343,6 @@ void test_migrator(Suite *s) {
   tcase_add_test(testCaseDatabase, test_isSetup);
   tcase_add_test(testCaseDatabase, test_axonSetup);
   tcase_add_test(testCaseDatabase, test_sequence);
+  tcase_add_test(testCaseDatabase, test_migrateWithCallbacks);
   suite_add_tcase(s, testCaseDatabase);
 }

@@ -248,3 +248,12 @@ void ck_releaseAll() {
   ck_releaseStderr();
   ck_releaseStdout();
 }
+
+void _ck_writeTestTriggersConfig(void) {
+  ck_overrideFile(
+      AXON_TRIGGERS_FILE,
+      ""
+          "libs: axonconfig axonutils\n"
+          "flags: -I../includes -L../lib\n"
+  );
+}
