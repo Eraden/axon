@@ -8,6 +8,25 @@ static void axon_appendColumn(AxonTableData *table, AxonColumnData *column) {
   table->columns[table->columnsCount - 1] = column;
 }
 
+static void axon_printTableColumnConstraint(FILE *f, AxonColumnConstraint *constraint) {
+  switch (constraint->type) {
+    case AXON_COLUMN_CONSTRAINT_NONE:
+      break; /* LCOV_EXCL_LINE */
+    case AXON_COLUMN_CONSTRAINT_REFERENCE:
+      fprintf(f, " REFERENCES %s", constraint->reference);
+      break;
+  }
+}
+
+static void axon_printTableColumn(FILE *f, AxonColumnData *column) {
+  fprintf(f, "  %s %s", column->name, column->type);
+  AxonColumnConstraint **constraints = column->constraints;
+  while (constraints && *constraints) {
+    axon_printTableColumnConstraint(f, *constraints);
+    constraints += 1;
+  }
+}
+
 int axon_newTable(int argc, char **argv) {
   if (argc < 4) return AXON_NOT_ENOUGH_ARGS;
 
@@ -38,7 +57,7 @@ int axon_newTable(int argc, char **argv) {
   for (size_t i = 0; i < table.columnsCount; i++) {
     AxonColumnData *column = table.columns[i];
     if (i > 0) fprintf(f, ",\n");
-    fprintf(f, "  %s %s", column->name, column->type);
+    axon_printTableColumn(f, column);
     axon_freeColumn(column);
   }
   fprintf(f, "\n);\n");
