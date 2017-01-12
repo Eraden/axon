@@ -71,6 +71,26 @@ axon-creator change accounts add age:int
 axon-creator change accounts retype login:text
 ```
 
+When you creating new table you can use some handy shortcuts:
+
+### NOT NULL bang
+
+Adding bang at end of column name will add `NOT NULL` constraint to column, for example:
+
+`columnName!:columnType`
+
+### REFERENCES
+
+You can inform `axon` that column is actually reference to another table column by adding `(` and `)` with column name
+between them, example:
+
+`author_id:accounts(id)`
+
+### UNIQUE NOT NULL id
+
+All `id` columns are now `UNIQUE NOT NULL`! You don't need to pass `id!` to have `NOT NULL` constraint but if you do
+this SQL still will be valid.
+
 ## Migrator
 
 Axon is delivered with `axon-migrator` which handle all psql connections and sql executions.
@@ -285,13 +305,15 @@ Every not included file will be ignored as well as entry with non-existing files
 - [x] Executing migration in transaction
 - [x] Skip already executed files
 - [x] Using setup `axon db setup` for setup database before `db migrate`
+- [x] Using seeds `axon db seed` for creating default or example table rows
+- [x] Support PostgreSQL `REFERENCES` constraint
+- [x] Support PostgreSQL `NOT NULL` constraint
+- [x] Before migration code execution
+- [x] After migration code execution
 
 ### TODO
 
-- [ ] Support for `REFERENCES`
-- [ ] Using seeds `axon db seed`
-- [ ] Before migration code execution
-- [ ] After migration code execution
+### Known bugs
 
 ## Pre-requirements
 

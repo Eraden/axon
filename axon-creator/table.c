@@ -15,6 +15,12 @@ static void axon_printTableColumnConstraint(FILE *f, AxonColumnConstraint *const
     case AXON_COLUMN_CONSTRAINT_REFERENCE:
       fprintf(f, " REFERENCES %s", constraint->reference);
       break;
+    case AXON_COLUMN_CONSTRAINT_NOT_NULL:
+      fprintf(f, " NOT NULL");
+      break;
+    case AXON_COLUMN_CONSTRAINT_UNIQUE:
+      fprintf(f, " UNIQUE");
+      break;
   }
 }
 
@@ -38,9 +44,7 @@ int axon_newTable(int argc, char **argv) {
   for (size_t i = 4; i < argc; i++) {
     char *rawColumn = argv[i];
     if (rawColumn == NULL) break;
-    else if (strcmp(rawColumn, "id") == 0) {
-      axon_appendColumn(&table, axon_getColumn("id:serial"));
-    } else if (strcmp(rawColumn, "timestamps") == 0) {
+    else if (strcmp(rawColumn, "timestamps") == 0) {
       axon_appendColumn(&table, axon_getColumn("updated_at:timestamp"));
       axon_appendColumn(&table, axon_getColumn("created_at:timestamp"));
     } else {

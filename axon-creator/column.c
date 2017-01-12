@@ -7,53 +7,111 @@ static int axon_dropColumnFromTable(char **argv);
 
 static int axon_changeColumnType(char **argv);
 
-AxonColumnData *axon_getColumn(char *rawColumn) {
-  const size_t columnLen = strlen(rawColumn) + 1;
+static char axon_specialColumnName(char *str) {
+  size_t len = strlen(str);
+  if (str[len - 1] == '!') return 1;
+  return 0;
+}
 
+static char axon_specialColumnType(const char *str) {
+  if (strchr(str, '(')) return 1;
+  return 0;
+}
+
+char axon_isTableColumnConstraintExists(const AxonColumnData *column, AxonColumnConstraint *constraint) {
+  AxonColumnConstraint **constraints = column->constraints;
+  while (constraints && *constraints) {
+    if (constraint->type == (*constraints)->type) {
+      free(constraint);
+      return 1;
+    }
+    constraints += 1;
+  }
+  return 0;
+}
+
+static size_t axon_appendTableColumnConstraint(AxonColumnData *column, AxonColumnConstraint *constraint) {
+  if (axon_isTableColumnConstraintExists(column, constraint))
+    return column->constraintsLen;
+
+  column->constraintsLen += 1;
+  column->constraints = column->constraints ?
+                        realloc(column->constraints, sizeof(AxonColumnConstraint *) * (column->constraintsLen + 1)) :
+                        calloc(sizeof(AxonColumnConstraint *), column->constraintsLen + 1);
+  column->constraints[column->constraintsLen - 1] = constraint;
+  column->constraints[column->constraintsLen] = 0;
+  return column->constraintsLen;
+}
+
+static AxonColumnConstraint *axon_getColumnConstraint(char *name, char *data, AxonColumnConstraintType type) {
+  AxonColumnConstraint *constraint = calloc(sizeof(AxonColumnConstraint), 1);
+  constraint->type = type;
+  constraint->name = name;
+  constraint->reference = data;
+  return constraint;
+}
+
+static void axon_fetchSpecialColumnName(AxonColumnData *column, char *columnName) {
+  size_t len = strlen(columnName);
+  column->name = columnName;
+  columnName[len - 1] = 0;
+  AxonColumnConstraint *constraint = axon_getColumnConstraint(NULL, NULL, AXON_COLUMN_CONSTRAINT_NOT_NULL);
+  axon_appendTableColumnConstraint(column, constraint);
+}
+
+static void axon_fetchSpecialColumnType(AxonColumnData *column, char *columnType) {
+  column->type = calloc(sizeof(char), strlen("int") + 1);
+  strcat(column->type, "int");
+  AxonColumnConstraint *constraint = axon_getColumnConstraint(NULL, columnType, AXON_COLUMN_CONSTRAINT_REFERENCE);
+  axon_appendTableColumnConstraint(column, constraint);
+}
+
+AxonColumnData *axon_getColumn(char *string) {
+  char *rawColumn = calloc(sizeof(char), strlen(string) + 1);
+  strcpy(rawColumn, string);
+
+  AxonColumnData *column = (AxonColumnData *) calloc(sizeof(AxonColumnData), 1);
+  column->name = NULL;
+  column->type = NULL;
+  column->constraints = NULL;
+  column->constraintsLen = 0;
+
+  if (strchr(rawColumn, ':') == NULL) {
+    char isId = strcmp(rawColumn, "id") == 0 || strcmp(rawColumn, "id!") == 0;
+    size_t len = strlen(rawColumn) + strlen(isId ? ":serial" : ":varchar");
+    char *ptr = realloc(rawColumn, sizeof(char) * (len + 1));
+    if (ptr == NULL) exit(AXON_REALLOC_FAILURE); /* LCOV_EXCL_LINE */
+    else rawColumn = ptr;
+    strcat(rawColumn, isId ? ":serial" : ":varchar");
+    rawColumn[len] = 0;
+  }
+
+  const size_t columnLen = strlen(rawColumn) + 1;
   char *columnName = calloc(sizeof(char), columnLen);
   char *columnType = calloc(sizeof(char), columnLen);
 
-  if (strstr(rawColumn, ":") != NULL) {
-    char *ptr = rawColumn;
-    char *fill = columnName;
-    char *current = columnName;
-    while (ptr && *ptr && current) {
-      if (*ptr != ':') {
-        *fill = *ptr;
-        fill += 1;
-      } else {
-        if (current == columnName) current = fill = columnType;
-      }
-      ptr += 1;
+  char *ptr = rawColumn;
+  char *fill = columnName;
+  char *current = columnName;
+  while (ptr && *ptr && current) {
+    if (*ptr != ':') {
+      *fill = *ptr;
+      fill += 1;
+    } else {
+      if (current == columnName) current = fill = columnType;
     }
-  } else {
-    strcpy(columnName, rawColumn);
-    free(columnType);
-    char isId = strcmp(rawColumn, "id") != 0;
-    columnType = calloc(sizeof(char), strlen(isId ? "varchar" : "serial") + 1);
-    strcpy(columnType, isId ? "varchar" : "serial");
+    ptr += 1;
   }
-  AxonColumnData *column = (AxonColumnData *) calloc(sizeof(AxonColumnData), 1);
-  column->constraints = NULL;
-  column->constraintsLen = 0;
-  column->name = columnName;
-  if (strstr(columnType, "(") == NULL) {
-    column->type = columnType;
-  } else {
-    column->type = calloc(sizeof(char), strlen("int") + 1);
-    strcat(column->type, "int");
-    AxonColumnConstraint *constraint = calloc(sizeof(AxonColumnConstraint), 1);
-    constraint->type = AXON_COLUMN_CONSTRAINT_REFERENCE;
-    constraint->name = NULL;
-    constraint->reference = columnType;
-    column->constraintsLen += 1;
-    column->constraints = column->constraints ?
-                          realloc(column->constraints, sizeof(AxonColumnConstraint *) * (column->constraintsLen + 1))
-                                              : /* LCOV_EXCL_LINE */
-                          calloc(sizeof(AxonColumnConstraint *), column->constraintsLen + 1);
-    column->constraints[column->constraintsLen - 1] = constraint;
-    column->constraints[column->constraintsLen] = 0;
+
+  if (axon_specialColumnName(columnName)) axon_fetchSpecialColumnName(column, columnName);
+  else column->name = columnName;
+  if (axon_specialColumnType(columnType)) axon_fetchSpecialColumnType(column, columnType);
+  else column->type = columnType;
+  if (strcmp(column->name, "id") == 0) {
+    axon_appendTableColumnConstraint(column, axon_getColumnConstraint(NULL, NULL, AXON_COLUMN_CONSTRAINT_UNIQUE));
+    axon_appendTableColumnConstraint(column, axon_getColumnConstraint(NULL, NULL, AXON_COLUMN_CONSTRAINT_NOT_NULL));
   }
+  free(rawColumn);
   return column;
 }
 
@@ -159,8 +217,10 @@ static void axon_freeColumnConstraint(AxonColumnConstraint *constraint) {
     case AXON_COLUMN_CONSTRAINT_REFERENCE:
       if (constraint->reference) free(constraint->reference);
       break;
-    case AXON_COLUMN_CONSTRAINT_NONE:
-      break; /* LCOV_EXCL_LINE */
+    case AXON_COLUMN_CONSTRAINT_NOT_NULL:
+    case AXON_COLUMN_CONSTRAINT_UNIQUE:
+    case AXON_COLUMN_CONSTRAINT_NONE: /* LCOV_EXCL_LINE */
+      break;
   }
   free(constraint);
 }
