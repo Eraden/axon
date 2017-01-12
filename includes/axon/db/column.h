@@ -6,15 +6,15 @@
 
 typedef enum eAxonColumnConstraintType {
   AXON_COLUMN_CONSTRAINT_NONE,
+  AXON_COLUMN_CONSTRAINT_NOT_NULL,
   AXON_COLUMN_CONSTRAINT_REFERENCE,
+  AXON_COLUMN_CONSTRAINT_UNIQUE
 } AxonColumnConstraintType;
 
 typedef struct sAxonColumnConstraint {
   char *name;
   union {
-    char *check;
     char *reference;
-    char uniq;
   };
   AxonColumnConstraintType type;
 } AxonColumnConstraint;

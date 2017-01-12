@@ -85,7 +85,7 @@ START_TEST(test_newTable)
   ck_assert_ptr_ne(path, NULL);
   ck_path_contains(
       path,
-      "CREATE TABLE accounts (\n  id serial,\n  name varchar,\n  age int,\n  updated_at timestamp,\n  created_at timestamp\n);\n"
+      "CREATE TABLE accounts (\n  id serial UNIQUE NOT NULL,\n  name varchar,\n  age int,\n  updated_at timestamp,\n  created_at timestamp\n);\n"
   );
   free(path);
 
@@ -97,8 +97,29 @@ START_TEST(test_newTable)
   ck_assert_ptr_ne(path, NULL);
   ck_path_contains(
       path,
-      "CREATE TABLE posts (\n  id serial,\n  account_id int REFERENCES accounts(id)\n);\n"
+      "CREATE TABLE posts (\n  id serial UNIQUE NOT NULL,\n  account_id int REFERENCES accounts(id)\n);\n"
   );
+  free(path);
+
+  ck_unlink("./db");
+  char *newTableWithNotNull[7] = {"inline", "new", "table", "posts", "id", "title!", "content!:text"};
+  ck_redirectStdout(result = axon_runCreator(7, newTableWithNotNull);)
+  ck_assert_int_eq(result, AXON_SUCCESS);
+  path = ck_find_file_in("./db/migrate", "create_table_posts.sql");
+  ck_assert_ptr_ne(path, NULL);
+  ck_path_contains(
+      path,
+      "CREATE TABLE posts (\n  id serial UNIQUE NOT NULL,\n  title varchar NOT NULL,\n  content text NOT NULL\n);\n"
+  );
+  free(path);
+
+  ck_unlink("./db");
+  char *newTableDuplicateFlag[5] = {"inline", "new", "table", "posts", "id!"};
+  ck_redirectStdout(result = axon_runCreator(5, newTableDuplicateFlag);)
+  ck_assert_int_eq(result, AXON_SUCCESS);
+  path = ck_find_file_in("./db/migrate", "create_table_posts.sql");
+  ck_assert_ptr_ne(path, NULL);
+  ck_path_contains(path, "CREATE TABLE posts (\n  id serial NOT NULL UNIQUE\n);\n");
   free(path);
 
   char *notEnoughArgs[3] = {"inline", "new", "table"};
