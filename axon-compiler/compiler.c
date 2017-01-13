@@ -3,7 +3,8 @@
 static const char *CREATE_TRIGGERS_OBJECTS = " -std=c11 -Wall -fPIC -c ";
 
 #ifdef __clang__
-static const char *CREATE_TRIGGERS_OBJECTS_MEM_CHECK = " -g -fsanitize=address -fno-omit-frame-pointer -std=c11 -Wall -fPIC -c ";
+static const char *CREATE_TRIGGERS_OBJECTS_MEM_CHECK = " -g -fsanitize=address -fno-omit-frame-pointer "
+    "-std=c11 -Wall -fPIC -c ";
 #else
 static const char *CREATE_TRIGGERS_OBJECTS_MEM_CHECK = " -std=c11 -Wall -fPIC -c ";
 #endif
@@ -11,7 +12,8 @@ static const char *CREATE_TRIGGERS_OBJECTS_MEM_CHECK = " -std=c11 -Wall -fPIC -c
 static const char *ASSEMBLY_TRIGGERS_OBJECTS = " -ldl -shared -o ./.axon/triggers.so ";
 
 #ifdef __clang__
-static const char *ASSEMBLY_TRIGGERS_OBJECTS_MEM_CHECK = " -g -fsanitize=address -fno-omit-frame-pointer -ldl -shared -o ./.axon/triggers.so ";
+static const char *ASSEMBLY_TRIGGERS_OBJECTS_MEM_CHECK = " -g -fsanitize=address -fno-omit-frame-pointer"
+    " -ldl -shared -o ./.axon/triggers.so ";
 #else
 static const char *ASSEMBLY_TRIGGERS_OBJECTS_MEM_CHECK = " -ldl -shared -o ./.axon/triggers.so ";
 #endif

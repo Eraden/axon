@@ -9,6 +9,7 @@ int axon_dropDatabase() {
     return AXON_CONFIG_MISSING;
 
   char *name = axon_getDatabaseName();
+  if (name == NULL) return AXON_FAILURE; /* LCOV_EXCL_LINE */
 
   char *buffer = calloc(sizeof(char), strlen("DROP DATABASE ") + strlen(name) + 1);
   strcat(buffer, "DROP DATABASE ");

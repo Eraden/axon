@@ -1,9 +1,11 @@
 # Axon
 [![Axon](https://s29.postimg.org/sas2d3drb/axon128x128.png)](https://github.com/Eraden/axon)
 
-[![CircleCI](https://circleci.com/gh/Eraden/axon/tree/master.svg?style=svg&circle-token=beb41b70d3092e2fd7d64a3989d1ea3de7bfe520)](https://circleci.com/gh/Eraden/axon/tree/master)
+[![CircleCI](https://img.shields.io/circleci/project/github/Eraden/axon.svg?circle-token=beb41b70d3092e2fd7d64a3989d1ea3de7bfe520&style=flat-square)](https://github.com/Eraden/axon)
 [![codecov](https://codecov.io/gh/Eraden/axon/branch/master/graph/badge.svg)](https://codecov.io/gh/Eraden/axon)
-[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./License.md)
+[![Github All Releases](https://img.shields.io/github/downloads/Eraden/axon/total.svg?style=flat-square)](https://github.com/Eraden/axon)
+[![GitHub tag](https://img.shields.io/github/tag/Eraden/axon.svg?style=flat-square)](https://github.com/Eraden/axon)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](./License.md)
 
 axon is database migration manager. It can create SQL migration files with timestamp (which you can edit),
 execute them and skip every already executed file.

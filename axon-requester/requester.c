@@ -91,7 +91,11 @@ static int axon_sendSQL(AxonRequesterContext *context) {
 
 static AxonRequesterContext *axon_getRequesterContext(char *timestamp, const char *fileOrMode) {
   AxonRequesterContext *context = calloc(sizeof(AxonRequesterContext), 1);
-  context->triggersHandle = dlopen(AXON_TRIGGERS_LIB_FILE, RTLD_LAZY);
+  char *libraryPath = realpath(AXON_TRIGGERS_LIB_FILE, NULL);
+  context->triggersHandle = dlopen(libraryPath, RTLD_LAZY);
+  free(libraryPath);
+  if (context->triggersHandle == NULL)
+    fprintf(stderr, "Dynamic linking file could not be loaded:\n  %s\n", dlerror()); /* LCOV_EXCL_LINE */
   context->sql = axon_getSQL(fileOrMode);
   context->timestamp = timestamp;
   context->callbackData = calloc(sizeof(AxonCallbackData), 1);

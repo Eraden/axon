@@ -3,7 +3,7 @@
 static void axon_markPerformed(AxonMigration **migrations) {
   AxonMigration **ptr = migrations;
   FILE *save = fopen(AXON_MIGRATIONS_FILE, "r");
-  if (save == NULL) return;
+  if (save == NULL) return; /* LCOV_EXCL_LINE */
   char *buffer = NULL;
 
   while (!feof(save)) {
@@ -269,15 +269,20 @@ char axon_isMigrate(const char *arg) {
 }
 
 int axon_migrate(int argc, char **argv) {
+  int result = axon_ensureStructure();
+  if (result != AXON_SUCCESS) return result;
+  result = axon_createConfig();
+  if (result != AXON_SUCCESS) return result;
+
   char *connInfo = axon_getConnectionInfo();
   if (connInfo == NULL)
     return AXON_CONFIG_MISSING; /* LCOV_EXCL_LINE */
 
   AxonMigratorContext *migratorContext = axon_loadMigrations();
   migratorContext->connInfo = connInfo;
-  int result = axon_withTriggers(argc, argv) ?
-               axon_migrateWithTriggers(migratorContext) :
-               axon_migrateWithoutTriggers(migratorContext);
+  result = axon_withTriggers(argc, argv) ?
+           axon_migrateWithTriggers(migratorContext) :
+           axon_migrateWithoutTriggers(migratorContext);
   axon_freeMigrations(migratorContext, result == AXON_SUCCESS);
 
   return result;

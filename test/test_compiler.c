@@ -40,6 +40,12 @@ START_TEST(test_compiler_triggers)
   ck_assert_file_in("./.axon", "1_before_callback.o");
   ck_assert_file_in("./.axon", "triggers.so");
 
+#ifdef __clang__
+  char *memCheckArgs[3] = {"inline", "triggers", "--mem-check"};
+  result = axon_runCompiler(3, memCheckArgs);
+  ck_assert_int_eq(result, AXON_SUCCESS);
+#endif
+
   GO_TO_DUMMY
   ck_unlink("./db");
   result = axon_runCompiler(2, args);

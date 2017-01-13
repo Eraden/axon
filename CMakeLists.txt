@@ -110,7 +110,10 @@ ADD_EXECUTABLE(axon-migrator ${AXON_MIGRATOR_SOURCE_FILES} axon-migrator/main.c)
 ADD_EXECUTABLE(axon-creator ${AXON_CREATOR_SOURCE_FILES} axon-creator/main.c)
 ADD_EXECUTABLE(axon-compiler ${AXON_COMPILER_SOURCE_FILES} axon-compiler/main.c)
 ADD_EXECUTABLE(axon-requester ${AXON_REQUESTER_SOURCE_FILES} axon-requester/main.c)
-ADD_EXECUTABLE(axon_test ${TEST_SOURCE_FILES} test/test.c)
+
+IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+  ADD_EXECUTABLE(axon_test ${TEST_SOURCE_FILES} test/test.c)
+ENDIF ()
 
 ADD_LIBRARY(axonutils SHARED lib/utils.c)
 ADD_LIBRARY(axonconfig SHARED ${AXON_CONFIG_SOURCE_FILES})
@@ -125,11 +128,6 @@ SET(
     axonconfig
     axonutils
 )
-
-if (CMAKE_C_COMPILER MATCHES "gcc")
-  INCLUDE(CodeCoverage)
-  SETUP_TARGET_FOR_COVERAGE(axon_coverage axon_test coverage)
-endif ()
 
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/dummy DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 FILE(COPY ${CMAKE_CURRENT_SOURCE_DIR}/includes DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
@@ -169,7 +167,10 @@ TARGET_LINK_LIBRARIES(axon-compiler ${LIBS})
 
 TARGET_LINK_LIBRARIES(axon-requester ${LIBS} axonexec dl)
 
-TARGET_LINK_LIBRARIES(axon_test ${CHECK_LIBRARIES} axonexec ${LIBS} dl gcov)
+SET_TARGET_PROPERTIES(axon-requester PROPERTIES COMPILE_OPTIONS -O0)
+SET_TARGET_PROPERTIES(axon-requester PROPERTIES COMPILE_OPTIONS -g)
+SET_TARGET_PROPERTIES(axon-requester PROPERTIES COMPILE_OPTIONS -fsanitize=address)
+SET_TARGET_PROPERTIES(axon-requester PROPERTIES COMPILE_OPTIONS -fno-omit-frame-pointer)
 
 INSTALL(
     TARGETS axon axon-migrator axon-creator axon-compiler axon-requester axonconfig axonutils axonexec
@@ -178,3 +179,22 @@ INSTALL(
     ARCHIVE DESTINATION lib/static
 )
 INSTALL(DIRECTORY includes DESTINATION include FILES_MATCHING PATTERN "*.h")
+
+IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+  IF (CMAKE_C_COMPILER MATCHES "gcc")
+    INCLUDE(CodeCoverage)
+    SETUP_TARGET_FOR_COVERAGE(axon_coverage axon_test coverage)
+  ENDIF ()
+  TARGET_LINK_LIBRARIES(axon_test ${CHECK_LIBRARIES} axonexec ${LIBS} dl gcov)
+  ADD_TEST(
+      NAME axon_test
+      COMMAND ./axon_test && rm -Rf ./dummy/db
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+ENDIF ()
+ADD_TEST(
+    NAME shell_script
+    COMMAND
+    bash --login ${CMAKE_CURRENT_SOURCE_DIR}/cmake/test.sh
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dummy
+)
